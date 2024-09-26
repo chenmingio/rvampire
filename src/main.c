@@ -41,15 +41,12 @@ void AudioInputCallback(void *writeBuffer, unsigned int frames) {
   return;
 }
 
-AudioStream setupAudio() {
+AudioStream setupAudio(i16 *data, u32 dataSize) {
   InitAudioDevice();
   SetAudioStreamBufferSizeDefault(MAX_SAMPLES_PER_UPDATE);
   AudioStream stream = LoadAudioStream(SAMPLE_RATE, SAMPLE_SIZE * 8, 1);
   SetAudioStreamCallback(stream, AudioInputCallback);
 
-  // store 3 seconds of audio data
-  u32 dataSize = SAMPLE_SIZE * MAX_SAMPLES_SECONDS * SAMPLE_RATE;
-  i16 *data = (i16 *)malloc(dataSize);
   for (u32 i = 0; i < dataSize; i++) {
     data[i] = 0;
   }
@@ -75,7 +72,10 @@ int main() {
   // Create the window and OpenGL context
   InitWindow(screenWidth, screenHeight, "Vampire Game");
 
-  AudioStream stream = setupAudio();
+  // store 3 seconds of audio data
+  u32 dataSize = SAMPLE_SIZE * MAX_SAMPLES_SECONDS * SAMPLE_RATE;
+  i16 *data = (i16 *)malloc(dataSize);
+  AudioStream stream = setupAudio(data, dataSize);
   bool playingSound = false;
 
   SearchAndSetResourceDir("resources");
