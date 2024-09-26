@@ -41,24 +41,11 @@ void AudioInputCallback(void *writeBuffer, unsigned int frames) {
   return;
 }
 
-AudioStream setupAudio(i16 *data, u32 dataSize) {
+AudioStream setupAudio() {
   InitAudioDevice();
   SetAudioStreamBufferSizeDefault(MAX_SAMPLES_PER_UPDATE);
   AudioStream stream = LoadAudioStream(SAMPLE_RATE, SAMPLE_SIZE * 8, 1);
   SetAudioStreamCallback(stream, AudioInputCallback);
-
-  for (u32 i = 0; i < dataSize; i++) {
-    data[i] = 0;
-  }
-
-  soundBuffer.data = data;
-  soundBuffer.readCursorP = data;
-  soundBuffer.writeCursorP = data;
-  soundBuffer.size = dataSize;
-  soundBuffer.runningSampleIndex = 0;
-  soundBuffer.volume = 20000;
-  soundBuffer.frequency = 440.0f;
-
   return stream;
 }
 
@@ -74,8 +61,16 @@ int main() {
 
   // store 3 seconds of audio data
   u32 dataSize = SAMPLE_SIZE * MAX_SAMPLES_SECONDS * SAMPLE_RATE;
-  i16 *data = (i16 *)malloc(dataSize);
-  AudioStream stream = setupAudio(data, dataSize);
+  i16 *data = (i16 *)calloc(SAMPLE_RATE * MAX_SAMPLES_SECONDS, SAMPLE_SIZE);
+  soundBuffer.data = data;
+  soundBuffer.readCursorP = data;
+  soundBuffer.writeCursorP = data;
+  soundBuffer.size = dataSize;
+  soundBuffer.runningSampleIndex = 0;
+  soundBuffer.volume = 20000;
+  soundBuffer.frequency = 440.0f;
+
+  AudioStream stream = setupAudio();
   bool playingSound = false;
 
   SearchAndSetResourceDir("resources");
@@ -89,9 +84,6 @@ int main() {
   GameController *keyboardController = &inputs[0];
   *keyboardController = (GameController){0};
   keyboardController->connected = true;
-
-  r32 lastLoopTime = GetTime();
-  u32 dataWriteCursor = 0;
 
   // game loop
   while (!WindowShouldClose()) {
@@ -136,15 +128,7 @@ int main() {
     keyboardController->up = IsKeyDown(KEY_UP);
     keyboardController->down = IsKeyDown(KEY_DOWN);
 
-    r32 t0 = GetTime();
-    r32 timeSpan = t0 - lastLoopTime;
-    lastLoopTime = t0;
-    r32 frameRate = 1.0f / timeSpan;
-    DrawText(TextFormat("Frame Rate: %f", frameRate), 10, 40, 20, WHITE);
-
-    DrawText(TextFormat("Frame Rate from lib: %f", 1 / GetFrameTime()), 10, 70,
-             20, WHITE);
-
+    r32 timeSpan = GetFrameTime();
     UpdateAndRender(&buffer, &soundBuffer, inputs, timeSpan);
 
     Texture bufferTexture = LoadTextureFromImage(buffer);
@@ -154,6 +138,7 @@ int main() {
       PlayAudioStream(stream);
       playingSound = true;
     }
+
     EndDrawing();
     UnloadTexture(bufferTexture);
   }

@@ -4,8 +4,14 @@
 #include <math.h>
 #include <raylib.h>
 
+bool32 isValidSoundBuffer(SoundBuffer *soundBuffer) {
+  return (soundBuffer->writeCursorP >= soundBuffer->data) &&
+         (soundBuffer->writeCursorP <= soundBuffer->data + soundBuffer->size) &&
+         (soundBuffer->readCursorP >= soundBuffer->data) &&
+         (soundBuffer->readCursorP <= soundBuffer->data + soundBuffer->size);
+}
+
 void drawSoundWave(void *data, u32 size, u32 width, u32 height) {
-  // draw sound buffer wave
   for (u32 x = 0; x < width; x++) {
     u32 i = (u32)((r32)x / width * size);
     i16 *d = (i16 *)data;
@@ -16,11 +22,50 @@ void drawSoundWave(void *data, u32 size, u32 width, u32 height) {
   }
 }
 
-bool32 isValidSoundBuffer(SoundBuffer *soundBuffer) {
-  return (soundBuffer->writeCursorP >= soundBuffer->data) &&
-         (soundBuffer->writeCursorP <= soundBuffer->data + soundBuffer->size) &&
-         (soundBuffer->readCursorP >= soundBuffer->data) &&
-         (soundBuffer->readCursorP <= soundBuffer->data + soundBuffer->size);
+void fillSoundBuffer(SoundBuffer *soundBuffer, r32 timeSpan) {
+  DrawText(TextFormat("Frequency: %f, Volume: %d", soundBuffer->frequency,
+                      soundBuffer->volume),
+           10, 100, 20, WHITE);
+
+  u32 samplesPerPeriod = SAMPLE_RATE / soundBuffer->frequency;
+
+  u32 bytesToWrite = timeSpan * SAMPLE_RATE * SAMPLE_SIZE;
+  // if (bytesToWrite > soundBuffer->size) {
+  //   bytesToWrite = soundBuffer->size;
+  // }
+  assert(bytesToWrite <= soundBuffer->size);
+  u32 region1Size;
+  u32 region2Size = 0;
+
+  if (soundBuffer->writeCursorP + bytesToWrite >
+      soundBuffer->data + soundBuffer->size) {
+    region1Size =
+        soundBuffer->data + soundBuffer->size - soundBuffer->writeCursorP;
+    region2Size = bytesToWrite - region1Size;
+  } else {
+    region1Size = bytesToWrite;
+  }
+
+  u32 region1SizeSamples = region1Size / SAMPLE_SIZE;
+  for (u32 i = 0; i < region1SizeSamples; i++) {
+    assert(isValidSoundBuffer(soundBuffer));
+    *soundBuffer->writeCursorP++ =
+        (i16)(soundBuffer->volume *
+              sinf(2.0 * PI * soundBuffer->runningSampleIndex++ /
+                   samplesPerPeriod));
+  }
+
+  if (region2Size > 0) {
+    u32 region2SizeSamples = region2Size / SAMPLE_SIZE;
+    soundBuffer->writeCursorP = soundBuffer->data;
+    for (u32 i = 0; i < region2SizeSamples; i++) {
+      assert(isValidSoundBuffer(soundBuffer));
+      *soundBuffer->writeCursorP++ =
+          (i16)(soundBuffer->volume *
+                sinf(2 * PI * soundBuffer->runningSampleIndex++ /
+                     samplesPerPeriod));
+    }
+  }
 }
 
 void UpdateAndRender(Image *imageBuffer, SoundBuffer *soundBuffer,
@@ -99,48 +144,8 @@ void UpdateAndRender(Image *imageBuffer, SoundBuffer *soundBuffer,
   //       warriorIdx %= warriorRefreshFrames * warriorNumbers;
   //     }
 
-  DrawText(TextFormat("Frequency: %f, Volume: %d", soundBuffer->frequency,
-                      soundBuffer->volume),
-           10, 100, 20, WHITE);
+  fillSoundBuffer(soundBuffer, timeSpan);
 
-  u32 samplesPerPeriod = SAMPLE_RATE / soundBuffer->frequency;
-
-  u32 bytesToWrite = timeSpan * SAMPLE_RATE * SAMPLE_SIZE;
-  if (bytesToWrite > soundBuffer->size) {
-    bytesToWrite = soundBuffer->size;
-  }
-  u32 region1Size;
-  u32 region2Size = 0;
-
-  if (soundBuffer->writeCursorP + bytesToWrite >
-      soundBuffer->data + soundBuffer->size) {
-    region1Size =
-        soundBuffer->data + soundBuffer->size - soundBuffer->writeCursorP;
-    region2Size = bytesToWrite - region1Size;
-  } else {
-    region1Size = bytesToWrite;
-  }
-
-  u32 region1SizeSamples = region1Size / SAMPLE_SIZE;
-  for (u32 i = 0; i < region1SizeSamples; i++) {
-    assert(isValidSoundBuffer(soundBuffer));
-    *soundBuffer->writeCursorP++ =
-        (i16)(soundBuffer->volume *
-              sinf(2.0 * PI * (soundBuffer->runningSampleIndex++) /
-                   samplesPerPeriod));
-  }
-
-  if (region2Size > 0) {
-    u32 region2SizeSamples = region2Size / SAMPLE_SIZE;
-    soundBuffer->writeCursorP = soundBuffer->data;
-    for (u32 i = 0; i < region2SizeSamples; i++) {
-      assert(isValidSoundBuffer(soundBuffer));
-      *soundBuffer->writeCursorP++ =
-          (i16)(soundBuffer->volume *
-                sinf(2 * PI * (soundBuffer->runningSampleIndex++) /
-                     samplesPerPeriod));
-    }
-  }
   drawSoundWave(soundBuffer->data, soundBuffer->size, imageBuffer->width,
                 imageBuffer->height);
 }
