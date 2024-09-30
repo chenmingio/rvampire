@@ -4,25 +4,14 @@
 #include <math.h>
 #include <raylib.h>
 
-bool32 isValidSoundBuffer(SoundBuffer *soundBuffer) {
+internal bool32 isValidSoundBuffer(SoundBuffer *soundBuffer) {
   return (soundBuffer->writeCursorP >= soundBuffer->data) &&
          (soundBuffer->writeCursorP <= soundBuffer->data + soundBuffer->size) &&
          (soundBuffer->readCursorP >= soundBuffer->data) &&
          (soundBuffer->readCursorP <= soundBuffer->data + soundBuffer->size);
 }
 
-void drawSoundWave(void *data, u32 size, u32 width, u32 height) {
-  for (u32 x = 0; x < width; x++) {
-    u32 i = (u32)((r32)x / width * size);
-    i16 *d = (i16 *)data;
-    i32 y = (i32)((r32)(d[i]) / 20000 * height / 16);
-
-    DrawPixel(x, height / 2 - y, RED);
-    DrawPixel(x, height / 2, WHITE);
-  }
-}
-
-void fillSoundBuffer(SoundBuffer *soundBuffer, r32 timeSpan) {
+internal void fillSoundBuffer(SoundBuffer *soundBuffer, r32 timeSpan) {
   DrawText(TextFormat("Frequency: %f, Volume: %d", soundBuffer->frequency,
                       soundBuffer->volume),
            10, 100, 20, WHITE);
@@ -30,9 +19,9 @@ void fillSoundBuffer(SoundBuffer *soundBuffer, r32 timeSpan) {
   u32 samplesPerPeriod = SAMPLE_RATE / soundBuffer->frequency;
 
   u32 bytesToWrite = timeSpan * SAMPLE_RATE * SAMPLE_SIZE;
-  // if (bytesToWrite > soundBuffer->size) {
-  //   bytesToWrite = soundBuffer->size;
-  // }
+  if (bytesToWrite > soundBuffer->size) {
+    bytesToWrite = soundBuffer->size;
+  }
   assert(bytesToWrite <= soundBuffer->size);
   u32 region1Size;
   u32 region2Size = 0;
@@ -144,8 +133,12 @@ void UpdateAndRender(Image *imageBuffer, SoundBuffer *soundBuffer,
   //       warriorIdx %= warriorRefreshFrames * warriorNumbers;
   //     }
 
+#if 1
   fillSoundBuffer(soundBuffer, timeSpan);
-
-  drawSoundWave(soundBuffer->data, soundBuffer->size, imageBuffer->width,
+  DrawText(TextFormat("SoundBuffer RunningSampleIndex: %d",
+                      soundBuffer->runningSampleIndex),
+           10, 50, 20, WHITE);
+  DrawSoundWave(soundBuffer->data, soundBuffer->size, imageBuffer->width,
                 imageBuffer->height);
+#endif
 }

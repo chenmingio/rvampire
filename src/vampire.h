@@ -1,3 +1,5 @@
+#pragma once
+#include "debug.h"
 #include "platform.h"
 #include "raylib.h"
 
@@ -26,4 +28,6 @@ typedef struct {
 void UpdateAndRender(Image *buffer, SoundBuffer *soundBuffer,
                      GameController input[4], r32 timeSpan);
 
-void drawSoundWave(void *data, u32 size, u32 width, u32 height);
+typedef struct {
+
+} GameSoundBuffer;

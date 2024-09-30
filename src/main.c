@@ -1,3 +1,4 @@
+#include "debug.h"
 #include "platform.h"
 #include "raylib.h"
 #include "resource_dir.h" // utility header for SearchAndSetResourceDir
@@ -9,14 +10,14 @@
 #include <stdlib.h> // Required for: malloc(), free()
 #include <string.h> // Required for: memcpy()
 
-SoundBuffer soundBuffer = {0};
+global_variable SoundBuffer soundBuffer = {0};
 
 // frames = samples
 void AudioInputCallback(void *writeBuffer, unsigned int frames) {
   u32 bytesToRead = frames * SAMPLE_SIZE;
 
-  u32 region1Size;
-  u32 region2Size = 0;
+  size_t region1Size;
+  size_t region2Size = 0;
 
   if (soundBuffer.readCursorP + bytesToRead >
       soundBuffer.data + soundBuffer.size) {
@@ -60,8 +61,9 @@ int main() {
   InitWindow(screenWidth, screenHeight, "Vampire Game");
 
   // store 3 seconds of audio data
-  u32 dataSize = SAMPLE_SIZE * MAX_SAMPLES_SECONDS * SAMPLE_RATE;
+  size_t dataSize = SAMPLE_SIZE * MAX_SAMPLES_SECONDS * SAMPLE_RATE;
   i16 *data = (i16 *)calloc(SAMPLE_RATE * MAX_SAMPLES_SECONDS, SAMPLE_SIZE);
+  assert(CheckClean(data, dataSize));
   soundBuffer.data = data;
   soundBuffer.readCursorP = data;
   soundBuffer.writeCursorP = data;
@@ -71,7 +73,7 @@ int main() {
   soundBuffer.frequency = 440.0f;
 
   AudioStream stream = setupAudio();
-  bool playingSound = false;
+  bool32 playingSound = false;
 
   SearchAndSetResourceDir("resources");
   SetGamepadMappings(LoadFileText("gamecontrollerdb.txt"));
@@ -89,6 +91,9 @@ int main() {
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(BLACK);
+
+    DrawSoundWave(data, dataSize, screenWidth, screenHeight);
+    assert(CheckClean(data, dataSize));
 
     // input assign
     for (i32 controllerIndex = 0; controllerIndex < 4; controllerIndex++) {
@@ -130,7 +135,6 @@ int main() {
 
     r32 timeSpan = GetFrameTime();
     UpdateAndRender(&buffer, &soundBuffer, inputs, timeSpan);
-
     Texture bufferTexture = LoadTextureFromImage(buffer);
     DrawTexture(bufferTexture, 0, 0, WHITE);
 

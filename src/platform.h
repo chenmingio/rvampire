@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mach/arm/boolean.h>
 #include <stdbool.h>
 #include <stdint.h>
 
