@@ -2,6 +2,7 @@
 #include "platform.h"
 #include "raylib.h"
 #include "resource_dir.h" // utility header for SearchAndSetResourceDir
+#include "string.h"
 #include "vampire.h"
 #include <assert.h>
 #include <stdbool.h>
@@ -17,29 +18,20 @@ void AudioInputCallback(void *writeBuffer, unsigned int frames) {
   size_t region2Size = 0;
 
   if (soundOutput.readCursorP + bytesToRead >
-      soundOutput.data + soundOutput.size) {
-    region1Size = soundOutput.data + soundOutput.size - soundOutput.readCursorP;
+      soundOutput.data + soundOutput.bufferSize) {
+    region1Size =
+        soundOutput.data + soundOutput.bufferSize - soundOutput.readCursorP;
     region2Size = bytesToRead - region1Size;
   } else {
     region1Size = bytesToRead;
   }
 
-  i16 *d = (i16 *)writeBuffer;
-  u32 region1Samples = region1Size / SAMPLE_SIZE;
-  for (u32 i = 0; i < region1Samples; i++) {
-    *d++ = *soundOutput.readCursorP++;
-    if (soundOutput.readCursorP == soundOutput.writeCursorP) {
-      soundOutput.readCursorP = soundOutput.writeCursorP;
-    }
-  }
+  memcpy(writeBuffer, soundOutput.readCursorP, region1Size);
+  soundOutput.readCursorP += region1Size;
 
-  u32 region2Samples = region2Size / SAMPLE_SIZE;
-  for (u32 i = 0; i < region2Samples; i++) {
-    soundOutput.readCursorP = soundOutput.data;
-    *d++ = *soundOutput.readCursorP++;
-    if (soundOutput.readCursorP == soundOutput.writeCursorP) {
-      soundOutput.readCursorP = soundOutput.writeCursorP;
-    }
+  if (region2Size > 0) {
+    memcpy(writeBuffer + region1Size, soundOutput.data, region2Size);
+    soundOutput.readCursorP = soundOutput.data + region2Size;
   }
 
   return;
@@ -47,15 +39,18 @@ void AudioInputCallback(void *writeBuffer, unsigned int frames) {
 
 internal bool32 isValidSoundBuffer(RayLibSoundOutput *soundBuffer) {
   return (soundBuffer->writeCursorP >= soundBuffer->data) &&
-         (soundBuffer->writeCursorP <= soundBuffer->data + soundBuffer->size) &&
+         (soundBuffer->writeCursorP <=
+          soundBuffer->data + soundBuffer->bufferSize) &&
          (soundBuffer->readCursorP >= soundBuffer->data) &&
-         (soundBuffer->readCursorP <= soundBuffer->data + soundBuffer->size);
+         (soundBuffer->readCursorP <=
+          soundBuffer->data + soundBuffer->bufferSize);
 }
 
 AudioStream setupAudio() {
   InitAudioDevice();
   SetAudioStreamBufferSizeDefault(MAX_SAMPLES_PER_UPDATE);
-  AudioStream stream = LoadAudioStream(SAMPLE_RATE, SAMPLE_SIZE * 8, 1);
+  // sample size here is bit for each channel
+  AudioStream stream = LoadAudioStream(SAMPLE_RATE, SAMPLE_SIZE * 8 / 2, 2);
   SetAudioStreamCallback(stream, AudioInputCallback);
   return stream;
 }
@@ -65,22 +60,30 @@ int main() {
   SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
   SetTargetFPS(60);
 
-  int screenWidth = 1280;
-  int screenHeight = 720;
+  int screenWidth = SCREEN_WIDTH;
+  int screenHeight = SCREEN_HEIGHT;
   // Create the window and OpenGL context
   InitWindow(screenWidth, screenHeight, "Vampire Game");
 
   // store 3 seconds of audio data
-  size_t dataSize = SAMPLE_SIZE * MAX_SAMPLES_SECONDS * SAMPLE_RATE;
-  i16 *data = (i16 *)calloc(SAMPLE_RATE * MAX_SAMPLES_SECONDS, SAMPLE_SIZE);
-  assert(CheckClean(data, dataSize));
+  // sample size = 2 channels * 2 bytes per sample
+  size_t outputBufferSize = SAMPLE_SIZE * SAMPLE_RATE * 3;
+  i16 *data = (i16 *)calloc(SAMPLE_RATE * 3, SAMPLE_SIZE);
+  assert(CheckClean(data, outputBufferSize));
   soundOutput.data = data;
   soundOutput.readCursorP = data;
   soundOutput.writeCursorP = data;
-  soundOutput.size = dataSize;
+  soundOutput.bufferSize = outputBufferSize;
 
   AudioStream stream = setupAudio();
   bool32 playingSound = false;
+
+  GameSoundBuffer soundBuffer = {0};
+  // 1 second of audio data
+  i16 *soundData = (i16 *)calloc(SAMPLE_RATE * 1, SAMPLE_SIZE);
+  soundBuffer.samples = soundData;
+  soundBuffer.samplesPerSecond = SAMPLE_RATE;
+  soundBuffer.bufferSize = SAMPLE_RATE * 1 * SAMPLE_SIZE;
 
   SearchAndSetResourceDir("resources");
   SetGamepadMappings(LoadFileText("gamecontrollerdb.txt"));
@@ -138,50 +141,53 @@ int main() {
     keyboardController->down = IsKeyDown(KEY_DOWN);
 
     r32 timeSpan = GetFrameTime();
+    if (timeSpan > 1.0f) {
+      timeSpan = 1.0f;
+    }
 
-    GameSoundBuffer soundBuffer = {0};
-    i16 *soundData = (i16 *)calloc(SAMPLE_RATE * 3, SAMPLE_SIZE);
-    soundBuffer.samples = soundData;
+    // output sound on a normal buffer
     soundBuffer.sampleCount = timeSpan * SAMPLE_RATE;
-    soundBuffer.samplesPerSecond = SAMPLE_RATE;
     u32 bytesToWrite = soundBuffer.sampleCount * SAMPLE_SIZE;
+    assert(bytesToWrite <= soundBuffer.bufferSize);
 
     UpdateAndRenderWithSound(&buffer, &soundBuffer, inputs, timeSpan);
+    DrawSoundWave(soundBuffer.samples, soundOutput.bufferSize, 2);
 
+    // copy sound to ring buffer
     i16 *s = soundBuffer.samples;
-    if (bytesToWrite > soundOutput.size) {
-      bytesToWrite = soundOutput.size;
-    }
-    assert(bytesToWrite <= soundOutput.size);
-    u32 region1Size;
-    u32 region2Size = 0;
+
+    size_t region1Size;
+    size_t region2Size = 0;
 
     if (soundOutput.writeCursorP + bytesToWrite >
-        soundOutput.data + soundOutput.size) {
+        soundOutput.data + soundOutput.bufferSize) {
       region1Size =
-          soundOutput.data + soundOutput.size - soundOutput.writeCursorP;
+          soundOutput.data + soundOutput.bufferSize - soundOutput.writeCursorP;
       region2Size = bytesToWrite - region1Size;
     } else {
       region1Size = bytesToWrite;
     }
 
-    u32 region1SizeSamples = region1Size / SAMPLE_SIZE;
-    for (u32 i = 0; i < region1SizeSamples; i++) {
-      assert(isValidSoundBuffer(&soundOutput));
-      *soundOutput.writeCursorP++ = *s++;
-    }
+    assert(isValidSoundBuffer(&soundOutput));
+    assert((region1Size % SAMPLE_SIZE) == 0);
+    memcpy(soundOutput.writeCursorP, soundBuffer.samples, region1Size);
+    soundOutput.writeCursorP = soundOutput.writeCursorP + region1Size;
+    assert(isValidSoundBuffer(&soundOutput));
 
+    assert((region2Size % SAMPLE_SIZE) == 0);
     if (region2Size > 0) {
-      u32 region2SizeSamples = region2Size / SAMPLE_SIZE;
-      soundOutput.writeCursorP = soundOutput.data;
-      for (u32 i = 0; i < region2SizeSamples; i++) {
-        assert(isValidSoundBuffer(&soundOutput));
-        *soundOutput.writeCursorP++ = *s++;
-      }
+      memcpy(soundOutput.data, soundBuffer.samples + region1Size, region2Size);
+      soundOutput.writeCursorP = soundOutput.data + region2Size;
+      assert(isValidSoundBuffer(&soundOutput));
     }
 
-    DrawSoundWave(soundOutput.data, soundOutput.size, screenWidth,
-                  screenHeight);
+    DrawSoundWave(soundOutput.data, soundOutput.bufferSize, 1);
+    DrawCursor(soundOutput.data, soundOutput.writeCursorP,
+               soundOutput.bufferSize, 1, RED);
+    DrawCursor(soundOutput.data, soundOutput.readCursorP,
+               soundOutput.bufferSize, 1, GREEN);
+    DrawCursor(soundOutput.data, soundOutput.data + bytesToWrite,
+               soundOutput.bufferSize, 1, BLUE);
 
     Texture bufferTexture = LoadTextureFromImage(buffer);
     DrawTexture(bufferTexture, 0, 0, WHITE);

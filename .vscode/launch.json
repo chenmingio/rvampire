@@ -8,7 +8,7 @@
       "name": "Debug",
       "type": "lldb",
       "request": "launch",
-      "stopOnEntry": true,
+      "stopOnEntry": false,
       "program": "${workspaceFolder}/bin/Debug/${workspaceFolderBasename}",
       "args": [],
       "cwd": "${workspaceFolder}",

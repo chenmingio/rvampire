@@ -1,19 +1,30 @@
 #include "vampire.h"
+#include "debug.h"
 #include "platform.h"
 #include <math.h>
 #include <raylib.h>
 
 internal void OutputSound(GameSoundBuffer *soundBuffer) {
-  local_persist u32 runningSampleIndex = 0;
-  r32 toneHz = 440.0;
+  local_persist u32 sinIdx = 0;
+  u32 toneHz = 440.0;
   u32 volume = 20000;
-
   u32 wavePeriod = soundBuffer->samplesPerSecond / toneHz;
 
-  i16 *d = soundBuffer->samples;
+  i16 *sampleOut = soundBuffer->samples;
   for (u32 i = 0; i < soundBuffer->sampleCount; i++) {
-    *d++ = (i16)(volume * sinf(2.0 * PI * runningSampleIndex++ / wavePeriod));
+    i16 value = (i16)(sinf(2.0 * PI * sinIdx++ / wavePeriod) * volume);
+    *sampleOut++ = value;
+    *sampleOut++ = value;
   }
+
+#if 0
+  i16 *sampleOut = soundBuffer->samples;
+  for (u32 i = 0; i < soundBuffer->bufferSize / 4; i++) {
+    i16 value = 10000;
+    *sampleOut++ = value;
+    *sampleOut++ = value;
+  }
+#endif
 }
 
 void UpdateAndRenderWithSound(Image *imageBuffer, GameSoundBuffer *soundBuffer,

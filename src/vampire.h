@@ -27,6 +27,7 @@ typedef struct {
   i16 *samples;
   u32 sampleCount;
   u32 samplesPerSecond;
+  size_t bufferSize;
 } GameSoundBuffer;
 
 void UpdateAndRenderWithSound(Image *imageBuffer, GameSoundBuffer *soundBuffer,
