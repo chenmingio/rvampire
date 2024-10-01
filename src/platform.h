@@ -28,7 +28,7 @@ typedef float r32;
 typedef double r64;
 typedef int32_t bool32;
 
-#define SAMPLE_SIZE 4
+#define SAMPLE_SIZE sizeof(i16) * 2
 #define MAX_SAMPLES_PER_UPDATE 4096 // about 1/10 of a second
 #define SAMPLE_RATE 48000
 #define MAX_SAMPLES_SECONDS 3
@@ -38,5 +38,8 @@ typedef struct {
   void *writeCursor;
   void *readCursor;
   void *data;
+  size_t sampleSize;
   size_t bufferSize;
+  u32 sampleRate;
+  u32 duration;
 } RayLibSoundOutput;

@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <stdlib.h> // Required for: malloc(), free()
 
-global_variable RayLibSoundOutput soundOutput = {0};
+global_variable RayLibSoundOutput ringOutput = {0};
 
 // frames = samples
 void AudioInputCallback(void *writeBuffer, unsigned int frames) {
@@ -17,21 +17,21 @@ void AudioInputCallback(void *writeBuffer, unsigned int frames) {
   size_t region1Size;
   size_t region2Size = 0;
 
-  if (soundOutput.readCursor + bytesToRead >
-      soundOutput.data + soundOutput.bufferSize) {
+  if (ringOutput.readCursor + bytesToRead >
+      ringOutput.data + ringOutput.bufferSize) {
     region1Size =
-        soundOutput.data + soundOutput.bufferSize - soundOutput.readCursor;
+        ringOutput.data + ringOutput.bufferSize - ringOutput.readCursor;
     region2Size = bytesToRead - region1Size;
   } else {
     region1Size = bytesToRead;
   }
 
-  memcpy(writeBuffer, soundOutput.readCursor, region1Size);
-  soundOutput.readCursor += region1Size;
+  memcpy(writeBuffer, ringOutput.readCursor, region1Size);
+  ringOutput.readCursor += region1Size;
 
   if (region2Size > 0) {
-    memcpy(writeBuffer + region1Size, soundOutput.data, region2Size);
-    soundOutput.readCursor = soundOutput.data + region2Size;
+    memcpy(writeBuffer + region1Size, ringOutput.data, region2Size);
+    ringOutput.readCursor = ringOutput.data + region2Size;
   }
 
   return;
@@ -67,23 +67,27 @@ int main() {
 
   // store 3 seconds of audio data
   // sample size = 2 channels * 2 bytes per sample
-  size_t outputBufferSize = SAMPLE_SIZE * SAMPLE_RATE * 3;
+  ringOutput.duration = 3;
+  ringOutput.sampleRate = SAMPLE_RATE;
+  ringOutput.sampleSize = SAMPLE_SIZE;
+  size_t outputBufferSize =
+      ringOutput.sampleSize * ringOutput.sampleRate * ringOutput.duration;
   i16 *data = (i16 *)calloc(SAMPLE_RATE * 3, SAMPLE_SIZE);
   assert(CheckClean(data, outputBufferSize));
-  soundOutput.data = data;
-  soundOutput.readCursor = data;
-  soundOutput.writeCursor = data;
-  soundOutput.bufferSize = outputBufferSize;
+  ringOutput.data = data;
+  ringOutput.readCursor = data;
+  ringOutput.writeCursor = data;
+  // reserve maximum size = ring buffer size
+  ringOutput.bufferSize = outputBufferSize;
 
   AudioStream stream = setupAudio();
   bool32 playingSound = false;
 
-  GameSoundBuffer soundBuffer = {0};
-  // 1 second of audio data
+  GameSoundBuffer gameSound = {0};
   i16 *soundData = (i16 *)calloc(SAMPLE_RATE * 1, SAMPLE_SIZE);
-  soundBuffer.samples = soundData;
-  soundBuffer.samplesPerSecond = SAMPLE_RATE;
-  soundBuffer.bufferSize = SAMPLE_RATE * 1 * SAMPLE_SIZE;
+  gameSound.samples = soundData;
+  gameSound.samplesPerSecond = ringOutput.sampleRate;
+  gameSound.bufferSize = ringOutput.bufferSize;
 
   SearchAndSetResourceDir("resources");
   SetGamepadMappings(LoadFileText("gamecontrollerdb.txt"));
@@ -146,46 +150,46 @@ int main() {
     }
 
     // output sound on a normal buffer
-    soundBuffer.sampleCount = timeSpan * SAMPLE_RATE;
-    u32 bytesToWrite = soundBuffer.sampleCount * SAMPLE_SIZE;
-    assert(bytesToWrite <= soundBuffer.bufferSize);
+    gameSound.sampleCount = timeSpan * SAMPLE_RATE;
+    u32 bytesToWrite = gameSound.sampleCount * SAMPLE_SIZE;
+    assert(bytesToWrite <= gameSound.bufferSize);
 
-    UpdateAndRenderWithSound(&buffer, &soundBuffer, inputs, timeSpan);
-    DrawSoundWave(soundBuffer.samples, soundOutput.bufferSize, 2);
+    UpdateAndRenderWithSound(&buffer, &gameSound, inputs, timeSpan);
+    DrawSoundWave(gameSound.samples, ringOutput.bufferSize, 2);
 
     size_t region1Size;
     size_t region2Size = 0;
 
-    if (soundOutput.writeCursor + bytesToWrite >
-        soundOutput.data + soundOutput.bufferSize) {
+    if (ringOutput.writeCursor + bytesToWrite >
+        ringOutput.data + ringOutput.bufferSize) {
       region1Size =
-          soundOutput.data + soundOutput.bufferSize - soundOutput.writeCursor;
+          ringOutput.data + ringOutput.bufferSize - ringOutput.writeCursor;
       region2Size = bytesToWrite - region1Size;
     } else {
       region1Size = bytesToWrite;
     }
 
-    assert(isValidSoundBuffer(&soundOutput));
+    assert(isValidSoundBuffer(&ringOutput));
     assert((region1Size % SAMPLE_SIZE) == 0);
-    memcpy(soundOutput.writeCursor, (void *)soundBuffer.samples, region1Size);
-    soundOutput.writeCursor = soundOutput.writeCursor + region1Size;
-    assert(isValidSoundBuffer(&soundOutput));
+    memcpy(ringOutput.writeCursor, (void *)gameSound.samples, region1Size);
+    ringOutput.writeCursor = ringOutput.writeCursor + region1Size;
+    assert(isValidSoundBuffer(&ringOutput));
 
     assert((region2Size % SAMPLE_SIZE) == 0);
     if (region2Size > 0) {
-      memcpy(soundOutput.data, (void *)soundBuffer.samples + region1Size,
+      memcpy(ringOutput.data, (void *)gameSound.samples + region1Size,
              region2Size);
-      soundOutput.writeCursor = soundOutput.data + region2Size;
-      assert(isValidSoundBuffer(&soundOutput));
+      ringOutput.writeCursor = ringOutput.data + region2Size;
+      assert(isValidSoundBuffer(&ringOutput));
     }
 
-    DrawSoundWave(soundOutput.data, soundOutput.bufferSize, 1);
-    DrawCursor(soundOutput.data, soundOutput.writeCursor,
-               soundOutput.bufferSize, 1, RED);
-    DrawCursor(soundOutput.data, soundOutput.readCursor, soundOutput.bufferSize,
-               1, GREEN);
-    DrawCursor(soundOutput.data, soundOutput.data + bytesToWrite,
-               soundOutput.bufferSize, 1, BLUE);
+    DrawSoundWave(ringOutput.data, ringOutput.bufferSize, 1);
+    DrawCursor(ringOutput.data, ringOutput.writeCursor, ringOutput.bufferSize,
+               1, RED);
+    DrawCursor(ringOutput.data, ringOutput.readCursor, ringOutput.bufferSize, 1,
+               GREEN);
+    DrawCursor(ringOutput.data, ringOutput.data + bytesToWrite,
+               ringOutput.bufferSize, 1, BLUE);
 
     Texture bufferTexture = LoadTextureFromImage(buffer);
     DrawTexture(bufferTexture, 0, 0, WHITE);
