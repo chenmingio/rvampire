@@ -1,64 +1,23 @@
 #include "vampire.h"
 #include "platform.h"
-#include <assert.h>
 #include <math.h>
 #include <raylib.h>
 
-internal bool32 isValidSoundBuffer(SoundBuffer *soundBuffer) {
-  return (soundBuffer->writeCursorP >= soundBuffer->data) &&
-         (soundBuffer->writeCursorP <= soundBuffer->data + soundBuffer->size) &&
-         (soundBuffer->readCursorP >= soundBuffer->data) &&
-         (soundBuffer->readCursorP <= soundBuffer->data + soundBuffer->size);
-}
+internal void OutputSound(GameSoundBuffer *soundBuffer) {
+  local_persist u32 runningSampleIndex = 0;
+  r32 toneHz = 440.0;
+  u32 volume = 20000;
 
-internal void fillSoundBuffer(SoundBuffer *soundBuffer, r32 timeSpan) {
-  DrawText(TextFormat("Frequency: %f, Volume: %d", soundBuffer->frequency,
-                      soundBuffer->volume),
-           10, 100, 20, WHITE);
+  u32 wavePeriod = soundBuffer->samplesPerSecond / toneHz;
 
-  u32 samplesPerPeriod = SAMPLE_RATE / soundBuffer->frequency;
-
-  u32 bytesToWrite = timeSpan * SAMPLE_RATE * SAMPLE_SIZE;
-  if (bytesToWrite > soundBuffer->size) {
-    bytesToWrite = soundBuffer->size;
-  }
-  assert(bytesToWrite <= soundBuffer->size);
-  u32 region1Size;
-  u32 region2Size = 0;
-
-  if (soundBuffer->writeCursorP + bytesToWrite >
-      soundBuffer->data + soundBuffer->size) {
-    region1Size =
-        soundBuffer->data + soundBuffer->size - soundBuffer->writeCursorP;
-    region2Size = bytesToWrite - region1Size;
-  } else {
-    region1Size = bytesToWrite;
-  }
-
-  u32 region1SizeSamples = region1Size / SAMPLE_SIZE;
-  for (u32 i = 0; i < region1SizeSamples; i++) {
-    assert(isValidSoundBuffer(soundBuffer));
-    *soundBuffer->writeCursorP++ =
-        (i16)(soundBuffer->volume *
-              sinf(2.0 * PI * soundBuffer->runningSampleIndex++ /
-                   samplesPerPeriod));
-  }
-
-  if (region2Size > 0) {
-    u32 region2SizeSamples = region2Size / SAMPLE_SIZE;
-    soundBuffer->writeCursorP = soundBuffer->data;
-    for (u32 i = 0; i < region2SizeSamples; i++) {
-      assert(isValidSoundBuffer(soundBuffer));
-      *soundBuffer->writeCursorP++ =
-          (i16)(soundBuffer->volume *
-                sinf(2 * PI * soundBuffer->runningSampleIndex++ /
-                     samplesPerPeriod));
-    }
+  i16 *d = soundBuffer->samples;
+  for (u32 i = 0; i < soundBuffer->sampleCount; i++) {
+    *d++ = (i16)(volume * sinf(2.0 * PI * runningSampleIndex++ / wavePeriod));
   }
 }
 
-void UpdateAndRender(Image *imageBuffer, SoundBuffer *soundBuffer,
-                     GameController input[4], r32 timeSpan) {
+void UpdateAndRenderWithSound(Image *imageBuffer, GameSoundBuffer *soundBuffer,
+                              GameController input[4], r32 timeSpan) {
   local_persist i32 xOffset = 0;
   local_persist i32 yOffset = 0;
 
@@ -133,12 +92,10 @@ void UpdateAndRender(Image *imageBuffer, SoundBuffer *soundBuffer,
   //       warriorIdx %= warriorRefreshFrames * warriorNumbers;
   //     }
 
-#if 1
-  fillSoundBuffer(soundBuffer, timeSpan);
-  DrawText(TextFormat("SoundBuffer RunningSampleIndex: %d",
-                      soundBuffer->runningSampleIndex),
-           10, 50, 20, WHITE);
-  DrawSoundWave(soundBuffer->data, soundBuffer->size, imageBuffer->width,
-                imageBuffer->height);
+  OutputSound(soundBuffer);
+#if 0
+  DrawSoundWave(soundBuffer->data,
+                soundBuffer->samplesToUpdate * soundBuffer->sampleSize,
+                imageBuffer->width, imageBuffer->height);
 #endif
 }

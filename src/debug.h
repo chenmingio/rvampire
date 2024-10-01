@@ -1,7 +1,6 @@
 #pragma once
 
 #include "platform.h"
-#include "raylib.h"
 #include <stddef.h>
 
 void DrawSoundWave(void *data, u32 size, u32 width, u32 height);

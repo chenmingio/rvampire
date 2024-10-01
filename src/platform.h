@@ -26,7 +26,7 @@ typedef int32_t bool32;
 
 #define SAMPLE_SIZE 2
 #define MAX_SAMPLES_PER_UPDATE 4096 // about 1/10 of a second
-#define SAMPLE_RATE 44100
+#define SAMPLE_RATE 48000
 #define MAX_SAMPLES_SECONDS 3
 #define PI 3.14159265359
 
@@ -35,7 +35,4 @@ typedef struct {
   i16 *readCursorP;
   i16 *data;
   u32 size;
-  u32 runningSampleIndex;
-  u32 volume;
-  r32 frequency;
-} SoundBuffer;
+} RayLibSoundOutput;

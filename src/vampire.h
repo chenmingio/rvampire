@@ -1,5 +1,3 @@
-#pragma once
-#include "debug.h"
 #include "platform.h"
 #include "raylib.h"
 
@@ -25,9 +23,11 @@ typedef struct {
   bool32 start;
 } GameController;
 
-void UpdateAndRender(Image *buffer, SoundBuffer *soundBuffer,
-                     GameController input[4], r32 timeSpan);
-
 typedef struct {
-
+  i16 *samples;
+  u32 sampleCount;
+  u32 samplesPerSecond;
 } GameSoundBuffer;
+
+void UpdateAndRenderWithSound(Image *imageBuffer, GameSoundBuffer *soundBuffer,
+                              GameController input[4], r32 timeSpan);
