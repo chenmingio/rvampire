@@ -35,8 +35,8 @@ typedef int32_t bool32;
 #define PI 3.14159265359
 
 typedef struct {
-  void *writeCursorP;
-  void *readCursorP;
+  void *writeCursor;
+  void *readCursor;
   void *data;
   size_t bufferSize;
 } RayLibSoundOutput;

@@ -17,32 +17,32 @@ void AudioInputCallback(void *writeBuffer, unsigned int frames) {
   size_t region1Size;
   size_t region2Size = 0;
 
-  if (soundOutput.readCursorP + bytesToRead >
+  if (soundOutput.readCursor + bytesToRead >
       soundOutput.data + soundOutput.bufferSize) {
     region1Size =
-        soundOutput.data + soundOutput.bufferSize - soundOutput.readCursorP;
+        soundOutput.data + soundOutput.bufferSize - soundOutput.readCursor;
     region2Size = bytesToRead - region1Size;
   } else {
     region1Size = bytesToRead;
   }
 
-  memcpy(writeBuffer, soundOutput.readCursorP, region1Size);
-  soundOutput.readCursorP += region1Size;
+  memcpy(writeBuffer, soundOutput.readCursor, region1Size);
+  soundOutput.readCursor += region1Size;
 
   if (region2Size > 0) {
     memcpy(writeBuffer + region1Size, soundOutput.data, region2Size);
-    soundOutput.readCursorP = soundOutput.data + region2Size;
+    soundOutput.readCursor = soundOutput.data + region2Size;
   }
 
   return;
 }
 
 internal bool32 isValidSoundBuffer(RayLibSoundOutput *soundBuffer) {
-  return (soundBuffer->writeCursorP >= soundBuffer->data) &&
-         (soundBuffer->writeCursorP <=
+  return (soundBuffer->writeCursor >= soundBuffer->data) &&
+         (soundBuffer->writeCursor <=
           soundBuffer->data + soundBuffer->bufferSize) &&
-         (soundBuffer->readCursorP >= soundBuffer->data) &&
-         (soundBuffer->readCursorP <=
+         (soundBuffer->readCursor >= soundBuffer->data) &&
+         (soundBuffer->readCursor <=
           soundBuffer->data + soundBuffer->bufferSize);
 }
 
@@ -71,8 +71,8 @@ int main() {
   i16 *data = (i16 *)calloc(SAMPLE_RATE * 3, SAMPLE_SIZE);
   assert(CheckClean(data, outputBufferSize));
   soundOutput.data = data;
-  soundOutput.readCursorP = data;
-  soundOutput.writeCursorP = data;
+  soundOutput.readCursor = data;
+  soundOutput.writeCursor = data;
   soundOutput.bufferSize = outputBufferSize;
 
   AudioStream stream = setupAudio();
@@ -153,16 +153,13 @@ int main() {
     UpdateAndRenderWithSound(&buffer, &soundBuffer, inputs, timeSpan);
     DrawSoundWave(soundBuffer.samples, soundOutput.bufferSize, 2);
 
-    // copy sound to ring buffer
-    i16 *s = soundBuffer.samples;
-
     size_t region1Size;
     size_t region2Size = 0;
 
-    if (soundOutput.writeCursorP + bytesToWrite >
+    if (soundOutput.writeCursor + bytesToWrite >
         soundOutput.data + soundOutput.bufferSize) {
       region1Size =
-          soundOutput.data + soundOutput.bufferSize - soundOutput.writeCursorP;
+          soundOutput.data + soundOutput.bufferSize - soundOutput.writeCursor;
       region2Size = bytesToWrite - region1Size;
     } else {
       region1Size = bytesToWrite;
@@ -170,22 +167,23 @@ int main() {
 
     assert(isValidSoundBuffer(&soundOutput));
     assert((region1Size % SAMPLE_SIZE) == 0);
-    memcpy(soundOutput.writeCursorP, soundBuffer.samples, region1Size);
-    soundOutput.writeCursorP = soundOutput.writeCursorP + region1Size;
+    memcpy(soundOutput.writeCursor, (void *)soundBuffer.samples, region1Size);
+    soundOutput.writeCursor = soundOutput.writeCursor + region1Size;
     assert(isValidSoundBuffer(&soundOutput));
 
     assert((region2Size % SAMPLE_SIZE) == 0);
     if (region2Size > 0) {
-      memcpy(soundOutput.data, soundBuffer.samples + region1Size, region2Size);
-      soundOutput.writeCursorP = soundOutput.data + region2Size;
+      memcpy(soundOutput.data, (void *)soundBuffer.samples + region1Size,
+             region2Size);
+      soundOutput.writeCursor = soundOutput.data + region2Size;
       assert(isValidSoundBuffer(&soundOutput));
     }
 
     DrawSoundWave(soundOutput.data, soundOutput.bufferSize, 1);
-    DrawCursor(soundOutput.data, soundOutput.writeCursorP,
+    DrawCursor(soundOutput.data, soundOutput.writeCursor,
                soundOutput.bufferSize, 1, RED);
-    DrawCursor(soundOutput.data, soundOutput.readCursorP,
-               soundOutput.bufferSize, 1, GREEN);
+    DrawCursor(soundOutput.data, soundOutput.readCursor, soundOutput.bufferSize,
+               1, GREEN);
     DrawCursor(soundOutput.data, soundOutput.data + bytesToWrite,
                soundOutput.bufferSize, 1, BLUE);
 
