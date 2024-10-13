@@ -115,33 +115,33 @@ int main() {
         gameController->gamepadX = GetGamepadAxisMovement(controllerIndex, 0);
         gameController->gamepadY = GetGamepadAxisMovement(controllerIndex, 1);
 
-        gameController->up =
+        gameController->up.EndedDown =
             IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_UP);
-        gameController->down =
+        gameController->down.EndedDown =
             IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_DOWN);
-        gameController->left =
+        gameController->left.EndedDown =
             IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_LEFT);
-        gameController->right = IsGamepadButtonDown(
+        gameController->right.EndedDown = IsGamepadButtonDown(
             controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_RIGHT);
-        gameController->x = IsGamepadButtonDown(controllerIndex,
-                                                GAMEPAD_BUTTON_RIGHT_FACE_LEFT);
-        gameController->y =
+        gameController->x.EndedDown = IsGamepadButtonDown(
+            controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_LEFT);
+        gameController->y.EndedDown =
             IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_UP);
-        gameController->a = IsGamepadButtonDown(controllerIndex,
-                                                GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
-        gameController->b = IsGamepadButtonDown(
+        gameController->a.EndedDown = IsGamepadButtonDown(
+            controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
+        gameController->b.EndedDown = IsGamepadButtonDown(
             controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT);
-        gameController->start =
+        gameController->start.EndedDown =
             IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_MIDDLE_RIGHT);
       } else {
         gameController->connected = false;
       }
     }
 
-    keyboardController->right = IsKeyDown(KEY_RIGHT);
-    keyboardController->left = IsKeyDown(KEY_LEFT);
-    keyboardController->up = IsKeyDown(KEY_UP);
-    keyboardController->down = IsKeyDown(KEY_DOWN);
+    keyboardController->right.EndedDown = IsKeyDown(KEY_RIGHT);
+    keyboardController->left.EndedDown = IsKeyDown(KEY_LEFT);
+    keyboardController->up.EndedDown = IsKeyDown(KEY_UP);
+    keyboardController->down.EndedDown = IsKeyDown(KEY_DOWN);
 
     r32 timeSpan = GetFrameTime();
     if (timeSpan > 1.0f) {
@@ -153,10 +153,9 @@ int main() {
     u32 bytesToWrite = gameSound.sampleCount * SAMPLE_SIZE;
     assert(bytesToWrite <= gameSound.bufferSize);
 
-    UpdateAndRenderWithSound(&imageBuffer, &gameSound, &input, timeSpan);
+    GameUpdateAndRender(&imageBuffer, &gameSound, &input, timeSpan);
 
     Image buffer = GenImageColor(screenWidth, screenHeight, BLANK);
-    DrawSoundWave(gameSound.samples, ringOutput.bufferSize, 2);
 
     size_t region1Size;
     size_t region2Size = 0;

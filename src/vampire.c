@@ -26,41 +26,26 @@ internal void OutputSound(GameSoundOutputBuffer *soundBuffer) {
 #endif
 }
 
-void UpdateAndRenderWithSound(GameOffscreenBuffer *imageBuffer,
-                              GameSoundOutputBuffer *soundBuffer,
-                              GameInput *input, r32 timeSpan) {
+void GameUpdateAndRender(GameOffscreenBuffer *imageBuffer,
+                         GameSoundOutputBuffer *soundBuffer, GameInput *input,
+                         r32 timeSpan) {
   local_persist i32 xOffset = 0;
   local_persist i32 yOffset = 0;
 
   for (i32 GameControllerIdx = 0; GameControllerIdx < 4; GameControllerIdx++) {
     GameControllerInput *gameController = &input->Controller[GameControllerIdx];
     if (gameController->connected) {
-      if (gameController->up) {
+      if (gameController->up.EndedDown) {
         yOffset += 1;
       }
-      if (gameController->down) {
+      if (gameController->down.EndedDown) {
         yOffset -= 1;
       }
-      if (gameController->left) {
+      if (gameController->left.EndedDown) {
         xOffset -= 1;
       }
-      if (gameController->right) {
+      if (gameController->right.EndedDown) {
         xOffset += 1;
-      }
-      if (gameController->x) {
-        // do something
-      }
-      if (gameController->y) {
-        // do something
-      }
-      if (gameController->a) {
-        // do something
-      }
-      if (gameController->b) {
-        // do something
-      }
-      if (gameController->start) {
-        // do something
       }
       DrawText(TextFormat("Gamepad %d with offsets: %d, %d", GameControllerIdx,
                           xOffset, yOffset),

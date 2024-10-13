@@ -15,23 +15,28 @@ typedef struct {
   r32 gamepadX;
   r32 gamepadY;
 
-  bool32 up;
-  bool32 down;
-  bool32 left;
-  bool32 right;
+  union {
+    GameButtonState buttons[9];
+    struct {
+      GameButtonState up;
+      GameButtonState down;
+      GameButtonState left;
+      GameButtonState right;
 
-  bool32 x;
-  bool32 y;
-  bool32 a;
-  bool32 b;
+      GameButtonState x;
+      GameButtonState y;
+      GameButtonState a;
+      GameButtonState b;
 
-  bool32 start;
+      GameButtonState start;
+    };
+  };
 } GameControllerInput;
 
 typedef struct {
   i16 *samples;
-  u32 sampleCount;
   u32 samplesPerSecond;
+  u32 sampleCount;
   size_t bufferSize;
 } GameSoundOutputBuffer;
 
@@ -39,13 +44,15 @@ typedef struct {
   GameControllerInput Controller[4];
 } GameInput;
 
+// pixel size = 32 bits
 typedef struct {
   void *memory;
   u32 width;
   u32 height;
+  u32 pitch;
 
 } GameOffscreenBuffer;
 
-void UpdateAndRenderWithSound(GameOffscreenBuffer *imageBuffer,
-                              GameSoundOutputBuffer *soundBuffer,
-                              GameInput *input, r32 timeSpan);
+void GameUpdateAndRender(GameOffscreenBuffer *imageBuffer,
+                         GameSoundOutputBuffer *soundBuffer, GameInput *input,
+                         r32 timeSpan);
