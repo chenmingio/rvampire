@@ -1,5 +1,7 @@
 #include "platform.h"
 
+#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
 typedef struct {
 } World;
 

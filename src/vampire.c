@@ -3,9 +3,8 @@
 #include <math.h>
 #include <raylib.h>
 
-internal void OutputSound(GameSoundOutputBuffer *soundBuffer) {
+internal void GameOutputSound(GameSoundOutputBuffer *soundBuffer, u32 toneHz) {
   local_persist u32 sinIdx = 0;
-  u32 toneHz = 440.0;
   u32 volume = 20000;
   u32 wavePeriod = soundBuffer->samplesPerSecond / toneHz;
 
@@ -15,15 +14,22 @@ internal void OutputSound(GameSoundOutputBuffer *soundBuffer) {
     *sampleOut++ = value;
     *sampleOut++ = value;
   }
+}
 
-#if 0
-  i16 *sampleOut = soundBuffer->samples;
-  for (u32 i = 0; i < soundBuffer->bufferSize / 4; i++) {
-    i16 value = 10000;
-    *sampleOut++ = value;
-    *sampleOut++ = value;
+internal void RenderWeirdGradient(GameOffscreenBuffer *imageBuffer, i32 xOffset,
+                                  i32 yOffset) {
+  u32 *row = imageBuffer->memory;
+  for (u32 y = 0; y < imageBuffer->height; y++) {
+    u32 *pixel = row;
+    for (u32 x = 0; x < imageBuffer->width; x++) {
+      u8 green = (u8)(x + xOffset);
+      u8 blue = (u8)(y + yOffset);
+      u32 color = 0xFF << 24 | (green << 16) | (blue << 8) | 0xFF;
+      *pixel = color;
+      pixel++;
+    }
+    row += imageBuffer->width;
   }
-#endif
 }
 
 void GameUpdateAndRender(GameOffscreenBuffer *imageBuffer,
@@ -47,23 +53,7 @@ void GameUpdateAndRender(GameOffscreenBuffer *imageBuffer,
       if (gameController->right.EndedDown) {
         xOffset += 1;
       }
-      DrawText(TextFormat("Gamepad %d with offsets: %d, %d", GameControllerIdx,
-                          xOffset, yOffset),
-               10, 10 + GameControllerIdx * 20, 20, WHITE);
     }
-  }
-
-  u32 *row = imageBuffer->memory;
-  for (u32 y = 0; y < imageBuffer->height; y++) {
-    u32 *pixel = row;
-    for (u32 x = 0; x < imageBuffer->width; x++) {
-      u8 green = (u8)(x + xOffset);
-      u8 blue = (u8)(y + yOffset);
-      u32 color = 0xFF << 24 | (green << 16) | (blue << 8) | 0xFF;
-      *pixel = color;
-      pixel++;
-    }
-    row += imageBuffer->width;
   }
 
   //       // draw warrior on buffer
@@ -88,10 +78,6 @@ void GameUpdateAndRender(GameOffscreenBuffer *imageBuffer,
   //       warriorIdx %= warriorRefreshFrames * warriorNumbers;
   //     }
 
-  OutputSound(soundBuffer);
-#if 0
-  DrawSoundWave(soundBuffer->data,
-                soundBuffer->samplesToUpdate * soundBuffer->sampleSize,
-                imageBuffer->width, imageBuffer->height);
-#endif
+  GameOutputSound(soundBuffer, 440);
+  RenderWeirdGradient(imageBuffer, xOffset, yOffset);
 }

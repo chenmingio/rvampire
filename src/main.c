@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <stdlib.h> // Required for: malloc(), free()
 
-global_variable RayLibSoundOutput ringOutput = {0};
+global_variable RayLibSoundOutput ringOutput = {};
 
 // frames = samples
 void AudioInputCallback(void *writeBuffer, unsigned int frames) {
@@ -92,11 +92,11 @@ int main() {
   SearchAndSetResourceDir("resources");
   SetGamepadMappings(LoadFileText("gamecontrollerdb.txt"));
 
-  // pixel size = 4 bytes
-  void *memory = malloc(screenWidth * screenHeight * sizeof(u32));
-  GameOffscreenBuffer imageBuffer = {memory, screenWidth, screenHeight};
+  Image offscreenImage = GenImageColor(screenWidth, screenHeight, BLANK);
+  GameOffscreenBuffer imageBuffer = {offscreenImage.data, screenWidth,
+                                     screenHeight};
 
-  // inputs slot = 4, 0-3 for gamepad, 4 for keyboard
+  // inputs slot = 4, 0-2 for gamepad, 3 for keyboard
   GameInput input = {};
   GameControllerInput *keyboardController = &input.Controller[3];
   keyboardController->connected = true;
@@ -106,7 +106,7 @@ int main() {
     BeginDrawing();
     ClearBackground(BLACK);
 
-    for (i32 controllerIndex = 0; controllerIndex < 4; controllerIndex++) {
+    for (i32 controllerIndex = 0; controllerIndex < 3; controllerIndex++) {
       // and put them in 1-4 in game input controllers
       GameControllerInput *gameController = &input.Controller[controllerIndex];
       if (IsGamepadAvailable(controllerIndex)) {
@@ -155,8 +155,6 @@ int main() {
 
     GameUpdateAndRender(&imageBuffer, &gameSound, &input, timeSpan);
 
-    Image buffer = GenImageColor(screenWidth, screenHeight, BLANK);
-
     size_t region1Size;
     size_t region2Size = 0;
 
@@ -183,6 +181,7 @@ int main() {
       assert(isValidSoundBuffer(&ringOutput));
     }
 
+#if 0
     DrawSoundWave(ringOutput.data, ringOutput.bufferSize, 1);
     DrawCursor(ringOutput.data, ringOutput.writeCursor, ringOutput.bufferSize,
                1, RED);
@@ -190,8 +189,9 @@ int main() {
                GREEN);
     DrawCursor(ringOutput.data, ringOutput.data + bytesToWrite,
                ringOutput.bufferSize, 1, BLUE);
+#endif
 
-    Texture bufferTexture = LoadTextureFromImage(buffer);
+    Texture bufferTexture = LoadTextureFromImage(offscreenImage);
     DrawTexture(bufferTexture, 0, 0, WHITE);
 
     if (!playingSound) {
