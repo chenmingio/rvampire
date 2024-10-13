@@ -94,7 +94,7 @@ int main() {
 
   Image offscreenImage = GenImageColor(screenWidth, screenHeight, BLANK);
   GameOffscreenBuffer imageBuffer = {offscreenImage.data, screenWidth,
-                                     screenHeight};
+                                     screenHeight, screenWidth};
 
   // inputs slot = 4, 0-2 for gamepad, 3 for keyboard
   GameInput input = {};

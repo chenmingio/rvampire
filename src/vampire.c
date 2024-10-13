@@ -28,7 +28,7 @@ internal void RenderWeirdGradient(GameOffscreenBuffer *imageBuffer, i32 xOffset,
       *pixel = color;
       pixel++;
     }
-    row += imageBuffer->width;
+    row += imageBuffer->pitch;
   }
 }
 
@@ -37,6 +37,7 @@ void GameUpdateAndRender(GameOffscreenBuffer *imageBuffer,
                          r32 timeSpan) {
   local_persist i32 xOffset = 0;
   local_persist i32 yOffset = 0;
+  local_persist u32 toneHz = 440;
 
   for (i32 GameControllerIdx = 0; GameControllerIdx < 4; GameControllerIdx++) {
     GameControllerInput *gameController = &input->Controller[GameControllerIdx];
@@ -78,6 +79,6 @@ void GameUpdateAndRender(GameOffscreenBuffer *imageBuffer,
   //       warriorIdx %= warriorRefreshFrames * warriorNumbers;
   //     }
 
-  GameOutputSound(soundBuffer, 440);
+  GameOutputSound(soundBuffer, toneHz);
   RenderWeirdGradient(imageBuffer, xOffset, yOffset);
 }
