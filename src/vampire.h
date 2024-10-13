@@ -1,11 +1,16 @@
 #include "platform.h"
-#include "raylib.h"
 
 typedef struct {
 } World;
 
 typedef struct {
+  bool32 HalfTransitionCount;
+  bool32 EndedDown;
+} GameButtonState;
+
+typedef struct {
   bool32 connected;
+  bool32 isAnalog;
 
   r32 gamepadX;
   r32 gamepadY;
@@ -21,14 +26,26 @@ typedef struct {
   bool32 b;
 
   bool32 start;
-} GameController;
+} GameControllerInput;
 
 typedef struct {
   i16 *samples;
   u32 sampleCount;
   u32 samplesPerSecond;
   size_t bufferSize;
-} GameSoundBuffer;
+} GameSoundOutputBuffer;
 
-void UpdateAndRenderWithSound(Image *imageBuffer, GameSoundBuffer *soundBuffer,
-                              GameController input[4], r32 timeSpan);
+typedef struct {
+  GameControllerInput Controller[4];
+} GameInput;
+
+typedef struct {
+  void *memory;
+  u32 width;
+  u32 height;
+
+} GameOffscreenBuffer;
+
+void UpdateAndRenderWithSound(GameOffscreenBuffer *imageBuffer,
+                              GameSoundOutputBuffer *soundBuffer,
+                              GameInput *input, r32 timeSpan);

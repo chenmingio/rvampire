@@ -1,10 +1,9 @@
 #include "vampire.h"
-#include "debug.h"
 #include "platform.h"
 #include <math.h>
 #include <raylib.h>
 
-internal void OutputSound(GameSoundBuffer *soundBuffer) {
+internal void OutputSound(GameSoundOutputBuffer *soundBuffer) {
   local_persist u32 sinIdx = 0;
   u32 toneHz = 440.0;
   u32 volume = 20000;
@@ -27,13 +26,14 @@ internal void OutputSound(GameSoundBuffer *soundBuffer) {
 #endif
 }
 
-void UpdateAndRenderWithSound(Image *imageBuffer, GameSoundBuffer *soundBuffer,
-                              GameController input[4], r32 timeSpan) {
+void UpdateAndRenderWithSound(GameOffscreenBuffer *imageBuffer,
+                              GameSoundOutputBuffer *soundBuffer,
+                              GameInput *input, r32 timeSpan) {
   local_persist i32 xOffset = 0;
   local_persist i32 yOffset = 0;
 
   for (i32 GameControllerIdx = 0; GameControllerIdx < 4; GameControllerIdx++) {
-    GameController *gameController = &input[GameControllerIdx];
+    GameControllerInput *gameController = &input->Controller[GameControllerIdx];
     if (gameController->connected) {
       if (gameController->up) {
         yOffset += 1;
@@ -68,18 +68,18 @@ void UpdateAndRenderWithSound(Image *imageBuffer, GameSoundBuffer *soundBuffer,
     }
   }
 
-  // u32 *row = buffer->data;
-  // for (u32 y = 0; y < buffer->height; y++) {
-  //   u32 *pixel = row;
-  //   for (u32 x = 0; x < buffer->width; x++) {
-  //     u8 green = (u8)(x + xOffset);
-  //     u8 blue = (u8)(y + yOffset);
-  //     u32 color = 0xFF << 24 | (green << 16) | (blue << 8) | 0xFF;
-  //     *pixel = color;
-  //     pixel++;
-  //   }
-  //   row += buffer->width;
-  // }
+  u32 *row = imageBuffer->memory;
+  for (u32 y = 0; y < imageBuffer->height; y++) {
+    u32 *pixel = row;
+    for (u32 x = 0; x < imageBuffer->width; x++) {
+      u8 green = (u8)(x + xOffset);
+      u8 blue = (u8)(y + yOffset);
+      u32 color = 0xFF << 24 | (green << 16) | (blue << 8) | 0xFF;
+      *pixel = color;
+      pixel++;
+    }
+    row += imageBuffer->width;
+  }
 
   //       // draw warrior on buffer
   //   local_persist Image warriorRaw = LoadImage("Warrior_Red.png");

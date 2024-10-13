@@ -83,7 +83,7 @@ int main() {
   AudioStream stream = setupAudio();
   bool32 playingSound = false;
 
-  GameSoundBuffer gameSound = {0};
+  GameSoundOutputBuffer gameSound = {};
   i16 *soundData = (i16 *)calloc(SAMPLE_RATE * 1, SAMPLE_SIZE);
   gameSound.samples = soundData;
   gameSound.samplesPerSecond = ringOutput.sampleRate;
@@ -92,13 +92,13 @@ int main() {
   SearchAndSetResourceDir("resources");
   SetGamepadMappings(LoadFileText("gamecontrollerdb.txt"));
 
-  Image buffer = GenImageColor(screenWidth, screenHeight, BLANK);
+  // pixel size = 4 bytes
+  void *memory = malloc(screenWidth * screenHeight * sizeof(u32));
+  GameOffscreenBuffer imageBuffer = {memory, screenWidth, screenHeight};
 
-  // inputs
-  GameController inputs[5];
-  // keyboard control is first input
-  GameController *keyboardController = &inputs[0];
-  *keyboardController = (GameController){0};
+  // inputs slot = 4, 0-3 for gamepad, 4 for keyboard
+  GameInput input = {};
+  GameControllerInput *keyboardController = &input.Controller[3];
   keyboardController->connected = true;
 
   // game loop
@@ -106,11 +106,10 @@ int main() {
     BeginDrawing();
     ClearBackground(BLACK);
 
-    // input assign
     for (i32 controllerIndex = 0; controllerIndex < 4; controllerIndex++) {
-      GameController *gameController = &inputs[controllerIndex + 1];
+      // and put them in 1-4 in game input controllers
+      GameControllerInput *gameController = &input.Controller[controllerIndex];
       if (IsGamepadAvailable(controllerIndex)) {
-        *gameController = (GameController){0};
         gameController->connected = true;
 
         gameController->gamepadX = GetGamepadAxisMovement(controllerIndex, 0);
@@ -154,7 +153,9 @@ int main() {
     u32 bytesToWrite = gameSound.sampleCount * SAMPLE_SIZE;
     assert(bytesToWrite <= gameSound.bufferSize);
 
-    UpdateAndRenderWithSound(&buffer, &gameSound, inputs, timeSpan);
+    UpdateAndRenderWithSound(&imageBuffer, &gameSound, &input, timeSpan);
+
+    Image buffer = GenImageColor(screenWidth, screenHeight, BLANK);
     DrawSoundWave(gameSound.samples, ringOutput.bufferSize, 2);
 
     size_t region1Size;
