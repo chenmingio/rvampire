@@ -6,6 +6,12 @@ typedef struct {
 } World;
 
 typedef struct {
+  i32 xOffset;
+  i32 yOffset;
+  u32 toneHz;
+} GameState;
+
+typedef struct {
   bool32 HalfTransitionCount;
   bool32 EndedDown;
 } GameButtonState;
@@ -39,7 +45,6 @@ typedef struct {
   i16 *samples;
   u32 samplesPerSecond;
   u32 sampleCount;
-  size_t bufferSize;
 } GameSoundOutputBuffer;
 
 typedef struct {
@@ -55,6 +60,15 @@ typedef struct {
 
 } GameOffscreenBuffer;
 
-void GameUpdateAndRender(GameOffscreenBuffer *imageBuffer,
+typedef struct {
+  void *permanentStorage;
+  size_t permanentStorageSize;
+  void *transientStorage;
+  size_t transientStorageSize;
+  bool32 isInitialized;
+} GameMemory;
+
+void GameUpdateAndRender(GameMemory *gameMemory,
+                         GameOffscreenBuffer *imageBuffer,
                          GameSoundOutputBuffer *soundBuffer, GameInput *input,
                          r32 timeSpan);

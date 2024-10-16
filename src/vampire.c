@@ -32,27 +32,33 @@ internal void RenderWeirdGradient(GameOffscreenBuffer *imageBuffer, i32 xOffset,
   }
 }
 
-void GameUpdateAndRender(GameOffscreenBuffer *imageBuffer,
+void GameUpdateAndRender(GameMemory *gameMemory,
+                         GameOffscreenBuffer *imageBuffer,
                          GameSoundOutputBuffer *soundBuffer, GameInput *input,
                          r32 timeSpan) {
-  local_persist i32 xOffset = 0;
-  local_persist i32 yOffset = 0;
-  local_persist u32 toneHz = 440;
+
+  GameState *gameState = (GameState *)gameMemory->permanentStorage;
+  if (!gameMemory->isInitialized) {
+    gameState->xOffset = 0;
+    gameState->yOffset = 0;
+    gameState->toneHz = 440;
+    gameMemory->isInitialized = true;
+  }
 
   for (i32 GameControllerIdx = 0; GameControllerIdx < 4; GameControllerIdx++) {
     GameControllerInput *gameController = &input->Controller[GameControllerIdx];
     if (gameController->connected) {
       if (gameController->up.EndedDown) {
-        yOffset += 1;
+        gameState->yOffset += 1;
       }
       if (gameController->down.EndedDown) {
-        yOffset -= 1;
+        gameState->yOffset -= 1;
       }
       if (gameController->left.EndedDown) {
-        xOffset -= 1;
+        gameState->xOffset -= 1;
       }
       if (gameController->right.EndedDown) {
-        xOffset += 1;
+        gameState->xOffset += 1;
       }
     }
   }
@@ -79,6 +85,6 @@ void GameUpdateAndRender(GameOffscreenBuffer *imageBuffer,
   //       warriorIdx %= warriorRefreshFrames * warriorNumbers;
   //     }
 
-  GameOutputSound(soundBuffer, toneHz);
-  RenderWeirdGradient(imageBuffer, xOffset, yOffset);
+  GameOutputSound(soundBuffer, gameState->toneHz);
+  RenderWeirdGradient(imageBuffer, gameState->xOffset, gameState->yOffset);
 }

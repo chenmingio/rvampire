@@ -84,10 +84,9 @@ int main() {
   bool32 playingSound = false;
 
   GameSoundOutputBuffer gameSound = {};
-  i16 *soundData = (i16 *)calloc(SAMPLE_RATE * 1, SAMPLE_SIZE);
-  gameSound.samples = soundData;
+  i16 *samples = (i16 *)calloc(SAMPLE_RATE * 1, SAMPLE_SIZE);
+  gameSound.samples = samples;
   gameSound.samplesPerSecond = ringOutput.sampleRate;
-  gameSound.bufferSize = ringOutput.bufferSize;
 
   SearchAndSetResourceDir("resources");
   SetGamepadMappings(LoadFileText("gamecontrollerdb.txt"));
@@ -100,6 +99,19 @@ int main() {
   GameInput input = {};
   GameControllerInput *keyboardController = &input.Controller[3];
   keyboardController->connected = true;
+
+  GameMemory gameMemory = {};
+  gameMemory.permanentStorageSize = Megabytes(64);
+  gameMemory.transientStorageSize = Gigabytes(1);
+  size_t totalSize =
+      gameMemory.permanentStorageSize + gameMemory.transientStorageSize;
+  gameMemory.permanentStorage = malloc(totalSize);
+  gameMemory.transientStorage =
+      gameMemory.permanentStorage + gameMemory.permanentStorageSize;
+
+  if (samples && gameMemory.permanentStorage) {
+    // continue
+  }
 
   // game loop
   while (!WindowShouldClose()) {
@@ -151,9 +163,9 @@ int main() {
     // output sound on a normal buffer
     gameSound.sampleCount = timeSpan * SAMPLE_RATE;
     u32 bytesToWrite = gameSound.sampleCount * SAMPLE_SIZE;
-    assert(bytesToWrite <= gameSound.bufferSize);
 
-    GameUpdateAndRender(&imageBuffer, &gameSound, &input, timeSpan);
+    GameUpdateAndRender(&gameMemory, &imageBuffer, &gameSound, &input,
+                        timeSpan);
 
     size_t region1Size;
     size_t region2Size = 0;
