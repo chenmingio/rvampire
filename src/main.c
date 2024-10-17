@@ -102,10 +102,10 @@ int main() {
 
   GameMemory gameMemory = {};
   gameMemory.permanentStorageSize = Megabytes(64);
-  gameMemory.transientStorageSize = Gigabytes(1);
+  gameMemory.transientStorageSize = Gigabytes(4);
   size_t totalSize =
       gameMemory.permanentStorageSize + gameMemory.transientStorageSize;
-  gameMemory.permanentStorage = malloc(totalSize);
+  gameMemory.permanentStorage = calloc(1, totalSize);
   gameMemory.transientStorage =
       gameMemory.permanentStorage + gameMemory.permanentStorageSize;
 

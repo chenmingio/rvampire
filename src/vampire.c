@@ -38,6 +38,7 @@ void GameUpdateAndRender(GameMemory *gameMemory,
                          r32 timeSpan) {
 
   GameState *gameState = (GameState *)gameMemory->permanentStorage;
+  Assert(sizeof(GameState) <= gameMemory->permanentStorageSize);
   if (!gameMemory->isInitialized) {
     gameState->xOffset = 0;
     gameState->yOffset = 0;

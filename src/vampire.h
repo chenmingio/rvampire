@@ -1,6 +1,13 @@
 #include "platform.h"
+#include <assert.h>
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
+#if DEBUG
+#define Assert(Expression) assert(Expression);
+#else
+#define Assert(Expression)
+#endif
 
 typedef struct {
 } World;
