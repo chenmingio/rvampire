@@ -1,5 +1,4 @@
 #include "vampire.h"
-#include "platform.h"
 #include <math.h>
 #include <raylib.h>
 
@@ -40,6 +39,14 @@ void GameUpdateAndRender(GameMemory *gameMemory,
   GameState *gameState = (GameState *)gameMemory->permanentStorage;
   Assert(sizeof(GameState) <= gameMemory->permanentStorageSize);
   if (!gameMemory->isInitialized) {
+    char *filename = "Warrior_Red.png";
+    debug_read_file_result file = DebugPlatformReadEntireFile(filename);
+    if (file.contents) {
+      DebugPlatformWriteEntireFile("test.out", file.contentsSize,
+                                   file.contents);
+      DebugPlatformFreeFileMemory(file.contents);
+    }
+
     gameState->xOffset = 0;
     gameState->yOffset = 0;
     gameState->toneHz = 440;

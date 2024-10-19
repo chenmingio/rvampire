@@ -79,3 +79,12 @@ void GameUpdateAndRender(GameMemory *gameMemory,
                          GameOffscreenBuffer *imageBuffer,
                          GameSoundOutputBuffer *soundBuffer, GameInput *input,
                          r32 timeSpan);
+
+typedef struct {
+  void *contents;
+  size_t contentsSize;
+} debug_read_file_result;
+
+debug_read_file_result DebugPlatformReadEntireFile(char *filename);
+bool32 DebugPlatformWriteEntireFile(char *filename, size_t size, void *memory);
+void DebugPlatformFreeFileMemory(void *memory);

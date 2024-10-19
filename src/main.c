@@ -10,6 +10,19 @@
 
 global_variable RayLibSoundOutput ringOutput = {};
 
+debug_read_file_result DebugPlatformReadEntireFile(char *filename) {
+  int dataSize;
+  void *data = LoadFileData(filename, &dataSize);
+  debug_read_file_result result = {data, dataSize};
+  return result;
+};
+
+bool32 DebugPlatformWriteEntireFile(char *filename, size_t size, void *memory) {
+  return SaveFileData(filename, memory, size);
+};
+
+void DebugPlatformFreeFileMemory(void *memory) { UnloadFileData(memory); };
+
 // frames = samples
 void AudioInputCallback(void *writeBuffer, unsigned int frames) {
   u32 bytesToRead = frames * SAMPLE_SIZE;
