@@ -116,6 +116,7 @@ workspace (workspaceName)
     filter "configurations:Debug or Debug_RGFW"
         defines { "DEBUG" }
         symbols "On"
+        optimize "Off"
 
     filter "configurations:Release or Release_RGFW"
         defines { "NDEBUG" }
@@ -142,11 +143,28 @@ if (downloadRaylib) then
         location "build_files/"
         targetdir "../bin/%{cfg.buildcfg}"
 
-        filter {"system:windows", "configurations:Release or Release_RGFW", "action:gmake*"}
-            kind "WindowedApp"
-            buildoptions { "-Wl,--subsystem,windows" }
+        warnings "High"
 
-        filter {"system:windows", "configurations:Release or Release_RGFW", "action:vs*"}
+        buildoptions { 
+        "-Werror",                   -- 将警告视为错误
+        "-Wall",                     -- 启用所有常见警告
+        "-Wextra",                   -- 启用额外警告
+        "-Wno-unused-parameter",     -- 禁用未引用参数警告
+        "-Wno-unused-variable"       -- 禁用未使用变量警告
+        }
+
+        filter "toolset:clang"
+            buildoptions { 
+                "-fno-rtti",                 -- 禁用 RTTI
+                "-finline-functions",        -- 启用内联函数
+                "-Wno-gnu-anonymous-struct", -- 禁用匿名结构/联合警告
+            }
+
+
+        filter "action:vs*"
+            debugdir "$(SolutionDir)"
+
+        filter {"action:vs*", "configurations:Release"}
             kind "WindowedApp"
             entrypoint "mainCRTStartup"
 

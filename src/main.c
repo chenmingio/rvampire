@@ -72,6 +72,7 @@ int main() {
 
   SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
   SetTargetFPS(60);
+  SetTraceLogLevel(3);
 
   int screenWidth = SCREEN_WIDTH;
   int screenHeight = SCREEN_HEIGHT;
