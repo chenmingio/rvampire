@@ -29,7 +29,7 @@ typedef struct {
 
 typedef struct {
   bool32 isConnected;
-  bool32 isAnalog;
+  bool32 isAnalog; // stick is analog, dpad is not
 
   r32 stickAverageX;
   r32 stickAverageY;
@@ -66,7 +66,7 @@ typedef struct {
 } GameSoundOutputBuffer;
 
 typedef struct {
-  GameControllerInput Controller[4];
+  GameControllerInput Controller[5];
 } GameInput;
 
 // pixel size = 32 bits

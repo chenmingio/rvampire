@@ -109,9 +109,8 @@ int main() {
   GameOffscreenBuffer imageBuffer = {offscreenImage.data, screenWidth,
                                      screenHeight, screenWidth};
 
-  // inputs slot = 4, 0-2 for gamepad, 3 for keyboard
   GameInput input = {};
-  GameControllerInput *keyboardController = &input.Controller[3];
+  GameControllerInput *keyboardController = &input.Controller[0];
   keyboardController->isConnected = true;
 
   GameMemory gameMemory = {};
@@ -130,17 +129,34 @@ int main() {
       BeginDrawing();
       ClearBackground(BLACK);
 
-      for (i32 controllerIndex = 0; controllerIndex < 3; controllerIndex++) {
-        // and put them in 1-4 in game input controllers
+      keyboardController->moveUp.EndedDown = IsKeyDown(KEY_UP);
+      keyboardController->moveDown.EndedDown = IsKeyDown(KEY_DOWN);
+      keyboardController->moveRight.EndedDown = IsKeyDown(KEY_RIGHT);
+      keyboardController->moveLeft.EndedDown = IsKeyDown(KEY_LEFT);
+
+      u32 maxControllerCount = 4;
+      if (maxControllerCount > ArrayCount(input.Controller) - 1) {
+        maxControllerCount = ArrayCount(input.Controller) - 1;
+      }
+      for (u32 controllerIndex = 0; controllerIndex < maxControllerCount;
+           controllerIndex++) {
+        // in gameController it's 1-5, 0 for keyboard
         GameControllerInput *gameController =
-            &input.Controller[controllerIndex];
+            &input.Controller[controllerIndex + 1];
+        // in raylib it's 0-4
         if (IsGamepadAvailable(controllerIndex)) {
           gameController->isConnected = true;
+          SetGamepadVibration(controllerIndex, 0.5f, 0.5f);
 
           gameController->stickAverageX =
               GetGamepadAxisMovement(controllerIndex, 0);
           gameController->stickAverageY =
               GetGamepadAxisMovement(controllerIndex, 1);
+
+          if (gameController->stickAverageX != 0.0f ||
+              gameController->stickAverageY != 0.0f) {
+            gameController->isAnalog = true;
+          }
 
           gameController->moveUp.EndedDown =
               IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_UP);
@@ -150,6 +166,14 @@ int main() {
               controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_LEFT);
           gameController->moveRight.EndedDown = IsGamepadButtonDown(
               controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_RIGHT);
+
+          if (gameController->moveUp.EndedDown ||
+              gameController->moveDown.EndedDown ||
+              gameController->moveLeft.EndedDown ||
+              gameController->moveRight.EndedDown) {
+            gameController->isAnalog = false;
+          }
+
           gameController->actionUp.EndedDown = IsGamepadButtonDown(
               controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_LEFT);
           gameController->actionUp.EndedDown = IsGamepadButtonDown(
@@ -164,11 +188,6 @@ int main() {
           gameController->isConnected = false;
         }
       }
-
-      keyboardController->moveRight.EndedDown = IsKeyDown(KEY_RIGHT);
-      keyboardController->moveLeft.EndedDown = IsKeyDown(KEY_LEFT);
-      keyboardController->moveUp.EndedDown = IsKeyDown(KEY_UP);
-      keyboardController->moveDown.EndedDown = IsKeyDown(KEY_DOWN);
 
       r32 timeSpan = GetFrameTime();
       if (timeSpan > 1.0f) {
