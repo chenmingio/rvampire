@@ -14,9 +14,6 @@
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 
-#define Megabytes(Value) ((Value) * 1024LL * 1024LL)
-#define Gigabytes(Value) (Megabytes(Value) * 1024LL)
-
 typedef int8_t i8;
 typedef int16_t i16;
 typedef int32_t i32;

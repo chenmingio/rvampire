@@ -1,13 +1,17 @@
 #include "platform.h"
 #include <assert.h>
 
-#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
-
 #if DEBUG
 #define Assert(Expression) assert(Expression);
 #else
 #define Assert(Expression)
 #endif
+
+#define Kilobytes(Value) ((Value) * 1024LL)
+#define Megabytes(Value) (Kilobytes(Value) * 1024LL)
+#define Gigabytes(Value) (Megabytes(Value) * 1024LL)
+
+#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
 typedef struct {
 } World;
@@ -24,26 +28,33 @@ typedef struct {
 } GameButtonState;
 
 typedef struct {
-  bool32 connected;
+  bool32 isConnected;
   bool32 isAnalog;
 
-  r32 gamepadX;
-  r32 gamepadY;
+  r32 stickAverageX;
+  r32 stickAverageY;
 
   union {
-    GameButtonState buttons[9];
+    GameButtonState buttons[13];
     struct {
-      GameButtonState up;
-      GameButtonState down;
-      GameButtonState left;
-      GameButtonState right;
+      GameButtonState moveUp;
+      GameButtonState moveDown;
+      GameButtonState moveLeft;
+      GameButtonState moveRight;
 
-      GameButtonState x;
-      GameButtonState y;
-      GameButtonState a;
-      GameButtonState b;
+      GameButtonState actionLeft;
+      GameButtonState actionUp;
+      GameButtonState actionDown;
+      GameButtonState actionRight;
+
+      GameButtonState leftShoulder;
+      GameButtonState rightShoulder;
 
       GameButtonState start;
+      GameButtonState back;
+
+      // NOTE(casey): All buttons must be added above this line
+      GameButtonState terminator;
     };
   };
 } GameControllerInput;
@@ -85,6 +96,10 @@ typedef struct {
   size_t contentsSize;
 } debug_read_file_result;
 
+#if HANDMADE_INTERNAL
+
 debug_read_file_result DebugPlatformReadEntireFile(char *filename);
 bool32 DebugPlatformWriteEntireFile(char *filename, size_t size, void *memory);
 void DebugPlatformFreeFileMemory(void *memory);
+
+#endif

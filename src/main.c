@@ -112,7 +112,7 @@ int main() {
   // inputs slot = 4, 0-2 for gamepad, 3 for keyboard
   GameInput input = {};
   GameControllerInput *keyboardController = &input.Controller[3];
-  keyboardController->connected = true;
+  keyboardController->isConnected = true;
 
   GameMemory gameMemory = {};
   gameMemory.permanentStorageSize = Megabytes(64);
@@ -124,88 +124,89 @@ int main() {
       gameMemory.permanentStorage + gameMemory.permanentStorageSize;
 
   if (samples && gameMemory.permanentStorage) {
-    // continue
-  }
 
-  // game loop
-  while (!WindowShouldClose()) {
-    BeginDrawing();
-    ClearBackground(BLACK);
+    // game loop
+    while (!WindowShouldClose()) {
+      BeginDrawing();
+      ClearBackground(BLACK);
 
-    for (i32 controllerIndex = 0; controllerIndex < 3; controllerIndex++) {
-      // and put them in 1-4 in game input controllers
-      GameControllerInput *gameController = &input.Controller[controllerIndex];
-      if (IsGamepadAvailable(controllerIndex)) {
-        gameController->connected = true;
+      for (i32 controllerIndex = 0; controllerIndex < 3; controllerIndex++) {
+        // and put them in 1-4 in game input controllers
+        GameControllerInput *gameController =
+            &input.Controller[controllerIndex];
+        if (IsGamepadAvailable(controllerIndex)) {
+          gameController->isConnected = true;
 
-        gameController->gamepadX = GetGamepadAxisMovement(controllerIndex, 0);
-        gameController->gamepadY = GetGamepadAxisMovement(controllerIndex, 1);
+          gameController->stickAverageX =
+              GetGamepadAxisMovement(controllerIndex, 0);
+          gameController->stickAverageY =
+              GetGamepadAxisMovement(controllerIndex, 1);
 
-        gameController->up.EndedDown =
-            IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_UP);
-        gameController->down.EndedDown =
-            IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_DOWN);
-        gameController->left.EndedDown =
-            IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_LEFT);
-        gameController->right.EndedDown = IsGamepadButtonDown(
-            controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_RIGHT);
-        gameController->x.EndedDown = IsGamepadButtonDown(
-            controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_LEFT);
-        gameController->y.EndedDown =
-            IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_UP);
-        gameController->a.EndedDown = IsGamepadButtonDown(
-            controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
-        gameController->b.EndedDown = IsGamepadButtonDown(
-            controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT);
-        gameController->start.EndedDown =
-            IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_MIDDLE_RIGHT);
-      } else {
-        gameController->connected = false;
+          gameController->moveUp.EndedDown =
+              IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_UP);
+          gameController->moveDown.EndedDown = IsGamepadButtonDown(
+              controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_DOWN);
+          gameController->moveLeft.EndedDown = IsGamepadButtonDown(
+              controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_LEFT);
+          gameController->moveRight.EndedDown = IsGamepadButtonDown(
+              controllerIndex, GAMEPAD_BUTTON_LEFT_FACE_RIGHT);
+          gameController->actionUp.EndedDown = IsGamepadButtonDown(
+              controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_LEFT);
+          gameController->actionUp.EndedDown = IsGamepadButtonDown(
+              controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_UP);
+          gameController->actionDown.EndedDown = IsGamepadButtonDown(
+              controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
+          gameController->actionRight.EndedDown = IsGamepadButtonDown(
+              controllerIndex, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT);
+          gameController->start.EndedDown =
+              IsGamepadButtonDown(controllerIndex, GAMEPAD_BUTTON_MIDDLE_RIGHT);
+        } else {
+          gameController->isConnected = false;
+        }
       }
-    }
 
-    keyboardController->right.EndedDown = IsKeyDown(KEY_RIGHT);
-    keyboardController->left.EndedDown = IsKeyDown(KEY_LEFT);
-    keyboardController->up.EndedDown = IsKeyDown(KEY_UP);
-    keyboardController->down.EndedDown = IsKeyDown(KEY_DOWN);
+      keyboardController->moveRight.EndedDown = IsKeyDown(KEY_RIGHT);
+      keyboardController->moveLeft.EndedDown = IsKeyDown(KEY_LEFT);
+      keyboardController->moveUp.EndedDown = IsKeyDown(KEY_UP);
+      keyboardController->moveDown.EndedDown = IsKeyDown(KEY_DOWN);
 
-    r32 timeSpan = GetFrameTime();
-    if (timeSpan > 1.0f) {
-      timeSpan = 1.0f;
-    }
+      r32 timeSpan = GetFrameTime();
+      if (timeSpan > 1.0f) {
+        timeSpan = 1.0f;
+      }
 
-    // output sound on a normal buffer
-    gameSound.sampleCount = timeSpan * SAMPLE_RATE;
-    u32 bytesToWrite = gameSound.sampleCount * SAMPLE_SIZE;
+      // output sound on a normal buffer
+      gameSound.sampleCount = timeSpan * SAMPLE_RATE;
+      u32 bytesToWrite = gameSound.sampleCount * SAMPLE_SIZE;
 
-    GameUpdateAndRender(&gameMemory, &imageBuffer, &gameSound, &input,
-                        timeSpan);
+      GameUpdateAndRender(&gameMemory, &imageBuffer, &gameSound, &input,
+                          timeSpan);
 
-    size_t region1Size;
-    size_t region2Size = 0;
+      size_t region1Size;
+      size_t region2Size = 0;
 
-    if (ringOutput.writeCursor + bytesToWrite >
-        ringOutput.data + ringOutput.bufferSize) {
-      region1Size =
-          ringOutput.data + ringOutput.bufferSize - ringOutput.writeCursor;
-      region2Size = bytesToWrite - region1Size;
-    } else {
-      region1Size = bytesToWrite;
-    }
+      if (ringOutput.writeCursor + bytesToWrite >
+          ringOutput.data + ringOutput.bufferSize) {
+        region1Size =
+            ringOutput.data + ringOutput.bufferSize - ringOutput.writeCursor;
+        region2Size = bytesToWrite - region1Size;
+      } else {
+        region1Size = bytesToWrite;
+      }
 
-    assert(isValidSoundBuffer(&ringOutput));
-    assert((region1Size % SAMPLE_SIZE) == 0);
-    memcpy(ringOutput.writeCursor, (void *)gameSound.samples, region1Size);
-    ringOutput.writeCursor = ringOutput.writeCursor + region1Size;
-    assert(isValidSoundBuffer(&ringOutput));
-
-    assert((region2Size % SAMPLE_SIZE) == 0);
-    if (region2Size > 0) {
-      memcpy(ringOutput.data, (void *)gameSound.samples + region1Size,
-             region2Size);
-      ringOutput.writeCursor = ringOutput.data + region2Size;
       assert(isValidSoundBuffer(&ringOutput));
-    }
+      assert((region1Size % SAMPLE_SIZE) == 0);
+      memcpy(ringOutput.writeCursor, (void *)gameSound.samples, region1Size);
+      ringOutput.writeCursor = ringOutput.writeCursor + region1Size;
+      assert(isValidSoundBuffer(&ringOutput));
+
+      assert((region2Size % SAMPLE_SIZE) == 0);
+      if (region2Size > 0) {
+        memcpy(ringOutput.data, (void *)gameSound.samples + region1Size,
+               region2Size);
+        ringOutput.writeCursor = ringOutput.data + region2Size;
+        assert(isValidSoundBuffer(&ringOutput));
+      }
 
 #if 0
     DrawSoundWave(ringOutput.data, ringOutput.bufferSize, 1);
@@ -217,18 +218,18 @@ int main() {
                ringOutput.bufferSize, 1, BLUE);
 #endif
 
-    Texture bufferTexture = LoadTextureFromImage(offscreenImage);
-    DrawTexture(bufferTexture, 0, 0, WHITE);
+      Texture bufferTexture = LoadTextureFromImage(offscreenImage);
+      DrawTexture(bufferTexture, 0, 0, WHITE);
 
-    if (!playingSound) {
-      PlayAudioStream(stream);
-      playingSound = true;
+      if (!playingSound) {
+        PlayAudioStream(stream);
+        playingSound = true;
+      }
+
+      EndDrawing();
+      UnloadTexture(bufferTexture);
     }
-
-    EndDrawing();
-    UnloadTexture(bufferTexture);
   }
-
   CloseWindow();
   return 0;
 }

@@ -55,17 +55,17 @@ void GameUpdateAndRender(GameMemory *gameMemory,
 
   for (i32 GameControllerIdx = 0; GameControllerIdx < 4; GameControllerIdx++) {
     GameControllerInput *gameController = &input->Controller[GameControllerIdx];
-    if (gameController->connected) {
-      if (gameController->up.EndedDown) {
+    if (gameController->isConnected) {
+      if (gameController->moveUp.EndedDown) {
         gameState->yOffset += 1;
       }
-      if (gameController->down.EndedDown) {
+      if (gameController->moveDown.EndedDown) {
         gameState->yOffset -= 1;
       }
-      if (gameController->left.EndedDown) {
+      if (gameController->moveLeft.EndedDown) {
         gameState->xOffset -= 1;
       }
-      if (gameController->right.EndedDown) {
+      if (gameController->moveRight.EndedDown) {
         gameState->xOffset += 1;
       }
     }
