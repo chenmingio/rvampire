@@ -160,6 +160,11 @@ if (downloadRaylib) then
                 "-Wno-gnu-anonymous-struct", -- 禁用匿名结构/联合警告
             }
 
+        filter "configurations:Debug"
+            defines { 
+                "HANDMADE_INTERNAL=1", 
+                "HANDMADE_SLOW=1", 
+            }
 
         filter "action:vs*"
             debugdir "$(SolutionDir)"
