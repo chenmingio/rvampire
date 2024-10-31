@@ -5,23 +5,30 @@
 #include "string.h"
 #include "vampire.h"
 #include <assert.h>
+#include <dlfcn.h>
 #include <stdbool.h>
 #include <stdlib.h> // Required for: malloc(), free()
 
 global_variable RayLibSoundOutput ringOutput = {};
 
-debug_read_file_result DebugPlatformReadEntireFile(char *filename) {
+#if HANDMADE_INTERNAL
+DEBUG_PLATFORM_READ_ENTIRE_FILE(DebugPlatformReadEntireFile) {
   int dataSize;
   void *data = LoadFileData(filename, &dataSize);
   debug_read_file_result result = {data, dataSize};
   return result;
 };
 
-bool32 DebugPlatformWriteEntireFile(char *filename, size_t size, void *memory) {
+bool32 DebugPlatformWriteEntireFile(const char *filename, size_t size,
+                                    void *memory) {
   return SaveFileData(filename, memory, size);
 };
 
-void DebugPlatformFreeFileMemory(void *memory) { UnloadFileData(memory); };
+void DebugPlatformFreeFileMemory(void *memory) {
+  UnloadFileData((u8 *)memory);
+};
+
+#endif
 
 // frames = samples
 void AudioInputCallback(void *writeBuffer, unsigned int frames) {
@@ -43,20 +50,41 @@ void AudioInputCallback(void *writeBuffer, unsigned int frames) {
   ringOutput.readCursor += region1Size;
 
   if (region2Size > 0) {
-    memcpy(writeBuffer + region1Size, ringOutput.data, region2Size);
+    memcpy((u8 *)writeBuffer + region1Size, ringOutput.data, region2Size);
     ringOutput.readCursor = ringOutput.data + region2Size;
   }
 
   return;
 }
 
-internal bool32 isValidSoundBuffer(RayLibSoundOutput *soundBuffer) {
+internal bool32 isSoundBufferValid(RayLibSoundOutput *soundBuffer) {
   return (soundBuffer->writeCursor >= soundBuffer->data) &&
          (soundBuffer->writeCursor <=
           soundBuffer->data + soundBuffer->bufferSize) &&
          (soundBuffer->readCursor >= soundBuffer->data) &&
          (soundBuffer->readCursor <=
           soundBuffer->data + soundBuffer->bufferSize);
+}
+
+typedef struct {
+  game_update_and_render *GameUpdateAndRender;
+  game_get_sound_samples *GameGetSoundSamples;
+} raylibGameCode;
+
+internal raylibGameCode LoadGameCode() {
+  raylibGameCode result = {};
+  result.GameUpdateAndRender = GameUpdateAndRenderStub;
+  result.GameGetSoundSamples = GameGetSoundSamplesStub;
+
+  void *gameCodeDLL = dlopen("GameLibraryFullPath", RTLD_NOW);
+  if (gameCodeDLL) {
+    result.GameUpdateAndRender =
+        (game_update_and_render *)dlsym(gameCodeDLL, "GameUpdateAndRender");
+    result.GameGetSoundSamples =
+        (game_get_sound_samples *)dlsym(gameCodeDLL, "GameGetSoundSamples");
+  }
+
+  return result;
 }
 
 AudioStream setupAudio() {
@@ -72,7 +100,7 @@ int main() {
 
   SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
   SetTargetFPS(60);
-  SetTraceLogLevel(3);
+  SetTraceLogLevel(LOG_WARNING);
 
   int screenWidth = SCREEN_WIDTH;
   int screenHeight = SCREEN_HEIGHT;
@@ -88,9 +116,9 @@ int main() {
       ringOutput.sampleSize * ringOutput.sampleRate * ringOutput.duration;
   i16 *data = (i16 *)calloc(SAMPLE_RATE * 3, SAMPLE_SIZE);
   assert(CheckClean(data, outputBufferSize));
-  ringOutput.data = data;
-  ringOutput.readCursor = data;
-  ringOutput.writeCursor = data;
+  ringOutput.data = (u8 *)data;
+  ringOutput.readCursor = (u8 *)data;
+  ringOutput.writeCursor = (u8 *)data;
   // reserve maximum size = ring buffer size
   ringOutput.bufferSize = outputBufferSize;
 
@@ -113,16 +141,20 @@ int main() {
   GameControllerInput *keyboardController = &input.Controller[0];
   keyboardController->isConnected = true;
 
-  GameMemory gameMemory = {};
-  gameMemory.permanentStorageSize = Megabytes(64);
-  gameMemory.transientStorageSize = Gigabytes(4);
-  size_t totalSize =
-      gameMemory.permanentStorageSize + gameMemory.transientStorageSize;
-  gameMemory.permanentStorage = calloc(1, totalSize);
-  gameMemory.transientStorage =
-      gameMemory.permanentStorage + gameMemory.permanentStorageSize;
+  GameMemory memory = {};
+  memory.permanentStorageSize = Megabytes(64);
+  memory.transientStorageSize = Gigabytes(4);
+#if HANDMADE_INTERNAL
+  memory.DebugPlatformReadEntireFile = DebugPlatformReadEntireFile;
+  memory.DebugPlatformWriteEntireFile = DebugPlatformWriteEntireFile;
+  memory.DebugPlatformFreeFileMemory = DebugPlatformFreeFileMemory;
+#endif
+  size_t totalSize = memory.permanentStorageSize + memory.transientStorageSize;
+  memory.permanentStorage = (u8 *)calloc(1, totalSize);
+  memory.transientStorage =
+      memory.permanentStorage + memory.permanentStorageSize;
 
-  if (samples && gameMemory.permanentStorage) {
+  if (samples && memory.permanentStorage) {
 
     // game loop
     while (!WindowShouldClose()) {
@@ -146,7 +178,8 @@ int main() {
         // in raylib it's 0-4
         if (IsGamepadAvailable(controllerIndex)) {
           gameController->isConnected = true;
-          SetGamepadVibration(controllerIndex, 0.5f, 0.5f);
+          // SetGamepadVibration(controllerIndex, 0.5f, 0.5f); // not working on
+          // macos
 
           gameController->stickAverageX =
               GetGamepadAxisMovement(controllerIndex, 0);
@@ -198,8 +231,10 @@ int main() {
       gameSound.sampleCount = timeSpan * SAMPLE_RATE;
       u32 bytesToWrite = gameSound.sampleCount * SAMPLE_SIZE;
 
-      GameUpdateAndRender(&gameMemory, &imageBuffer, &gameSound, &input,
-                          timeSpan);
+      raylibGameCode gameCode = LoadGameCode();
+
+      gameCode.GameUpdateAndRender(&memory, &input, &imageBuffer);
+      gameCode.GameGetSoundSamples(&memory, &gameSound);
 
       size_t region1Size;
       size_t region2Size = 0;
@@ -213,18 +248,18 @@ int main() {
         region1Size = bytesToWrite;
       }
 
-      assert(isValidSoundBuffer(&ringOutput));
+      assert(isSoundBufferValid(&ringOutput));
       assert((region1Size % SAMPLE_SIZE) == 0);
       memcpy(ringOutput.writeCursor, (void *)gameSound.samples, region1Size);
       ringOutput.writeCursor = ringOutput.writeCursor + region1Size;
-      assert(isValidSoundBuffer(&ringOutput));
+      assert(isSoundBufferValid(&ringOutput));
 
       assert((region2Size % SAMPLE_SIZE) == 0);
       if (region2Size > 0) {
-        memcpy(ringOutput.data, (void *)gameSound.samples + region1Size,
+        memcpy(ringOutput.data, (u8 *)gameSound.samples + region1Size,
                region2Size);
         ringOutput.writeCursor = ringOutput.data + region2Size;
-        assert(isValidSoundBuffer(&ringOutput));
+        assert(isSoundBufferValid(&ringOutput));
       }
 
 #if 0

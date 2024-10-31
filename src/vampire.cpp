@@ -17,7 +17,7 @@ internal void GameOutputSound(GameSoundOutputBuffer *soundBuffer, u32 toneHz) {
 
 internal void RenderWeirdGradient(GameOffscreenBuffer *imageBuffer, i32 xOffset,
                                   i32 yOffset) {
-  u32 *row = imageBuffer->memory;
+  u32 *row = (u32 *)imageBuffer->memory;
   for (u32 y = 0; y < imageBuffer->height; y++) {
     u32 *pixel = row;
     for (u32 x = 0; x < imageBuffer->width; x++) {
@@ -31,25 +31,28 @@ internal void RenderWeirdGradient(GameOffscreenBuffer *imageBuffer, i32 xOffset,
   }
 }
 
-void GameUpdateAndRender(GameMemory *gameMemory,
-                         GameOffscreenBuffer *imageBuffer,
-                         GameSoundOutputBuffer *soundBuffer, GameInput *input,
-                         r32 timeSpan) {
+// GAME_UPDATE_AND_RENDER(GameUpdateAndRenderStub) {}
+// GAME_GET_SOUND_SAMPLES(GameGetSoundSamplesStub) {}
 
+extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   GameState *gameState = (GameState *)gameMemory->permanentStorage;
   Assert(sizeof(GameState) <= gameMemory->permanentStorageSize);
   if (!gameMemory->isInitialized) {
-    char *filename = "Warrior_Red.png";
-    debug_read_file_result file = DebugPlatformReadEntireFile(filename);
+#if HANDMADE_INTERNAL
+    const char *filename = "Warrior_Red.png";
+    debug_read_file_result file =
+        gameMemory->DebugPlatformReadEntireFile(filename);
     if (file.contents) {
-      DebugPlatformWriteEntireFile("test.out", file.contentsSize,
+      const char *outFilename = "test.out";
+      DebugPlatformWriteEntireFile(outFilename, file.contentsSize,
                                    file.contents);
       DebugPlatformFreeFileMemory(file.contents);
     }
+#endif
 
     gameState->xOffset = 0;
     gameState->yOffset = 0;
-    gameState->toneHz = 440;
+    gameState->toneHz = 512;
     gameMemory->isInitialized = true;
   }
 
@@ -93,6 +96,5 @@ void GameUpdateAndRender(GameMemory *gameMemory,
   //       warriorIdx %= warriorRefreshFrames * warriorNumbers;
   //     }
 
-  GameOutputSound(soundBuffer, gameState->toneHz);
   RenderWeirdGradient(imageBuffer, gameState->xOffset, gameState->yOffset);
 }

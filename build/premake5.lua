@@ -140,6 +140,7 @@ if (downloadRaylib) then
 
     project (workspaceName)
         kind "ConsoleApp"
+        language "C++"
         location "build_files/"
         targetdir "../bin/%{cfg.buildcfg}"
 
@@ -149,8 +150,9 @@ if (downloadRaylib) then
         "-Werror",                   -- 将警告视为错误
         "-Wall",                     -- 启用所有常见警告
         "-Wextra",                   -- 启用额外警告
-        "-Wno-unused-parameter",     -- 禁用未引用参数警告
-        "-Wno-unused-variable"       -- 禁用未使用变量警告
+        "-Wno-unused-parameter",     
+        "-Wno-unused-variable",      
+        "-Wno-unused-function",      
         }
 
         filter "toolset:clang"
@@ -158,6 +160,8 @@ if (downloadRaylib) then
                 "-fno-rtti",                 -- 禁用 RTTI
                 "-finline-functions",        -- 启用内联函数
                 "-Wno-gnu-anonymous-struct", -- 禁用匿名结构/联合警告
+                "-Wno-c++11-narrowing",
+                "-std=c++11"
             }
 
         filter "configurations:Debug"

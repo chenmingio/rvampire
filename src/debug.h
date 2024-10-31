@@ -1,6 +1,6 @@
 #pragma once
 
-#include "platform.h"
+#include "vampire.h"
 #include <raylib.h>
 #include <stddef.h>
 

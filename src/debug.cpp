@@ -18,7 +18,7 @@ void DrawSoundWave(void *data, size_t fullX, u32 lines) {
 
 void DrawCursor(void *start, void *cursor, size_t fullX, u32 lines,
                 Color color) {
-  size_t distance = cursor - start;
+  size_t distance = (u8 *)cursor - (u8 *)start;
   // distance/fullX mapping to screen x
   u32 x = (u32)((r32)distance / fullX * SCREEN_WIDTH);
 
