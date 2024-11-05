@@ -231,6 +231,21 @@ if (downloadRaylib) then
         filter{}
         
 
+
+    project "gamelib"
+        kind "SharedLib"  
+        language "C++"
+        location "build_files/"
+        targetdir "../resources"
+
+        files {"../src/vampire.cpp"}
+        includedirs { "include" }
+
+        filter "system:macosx"
+            defines { "MYLIBRARY_EXPORTS" }  
+
+        filter {} 
+    
     project "raylib"
         kind "StaticLib"
     

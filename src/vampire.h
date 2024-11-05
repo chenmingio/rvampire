@@ -149,7 +149,7 @@ typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 inline GAME_UPDATE_AND_RENDER(GameUpdateAndRenderStub) {}
 
 #define GAME_GET_SOUND_SAMPLES(name)                                           \
-  void name(GameMemory *Memory, GameSoundOutputBuffer *SoundBuffer)
+  void name(GameMemory *gameMemory, GameSoundOutputBuffer *soundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 inline GAME_GET_SOUND_SAMPLES(GameGetSoundSamplesStub) {}
 

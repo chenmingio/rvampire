@@ -1,6 +1,5 @@
 #include "vampire.h"
 #include <math.h>
-#include <raylib.h>
 
 internal void GameOutputSound(GameSoundOutputBuffer *soundBuffer, u32 toneHz) {
   local_persist u32 sinIdx = 0;
@@ -31,8 +30,11 @@ internal void RenderWeirdGradient(GameOffscreenBuffer *imageBuffer, i32 xOffset,
   }
 }
 
-// GAME_UPDATE_AND_RENDER(GameUpdateAndRenderStub) {}
-// GAME_GET_SOUND_SAMPLES(GameGetSoundSamplesStub) {}
+extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
+  GameState *gameState = (GameState *)gameMemory->permanentStorage;
+  Assert(sizeof(GameState) <= gameMemory->permanentStorageSize);
+  GameOutputSound(soundBuffer, gameState->toneHz);
+}
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   GameState *gameState = (GameState *)gameMemory->permanentStorage;

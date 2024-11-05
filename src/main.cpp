@@ -9,6 +9,9 @@
 #include <stdbool.h>
 #include <stdlib.h> // Required for: malloc(), free()
 
+#include <stdio.h>
+#include <unistd.h>
+
 global_variable RayLibSoundOutput ringOutput = {};
 
 #if HANDMADE_INTERNAL
@@ -69,21 +72,31 @@ internal bool32 isSoundBufferValid(RayLibSoundOutput *soundBuffer) {
 typedef struct {
   game_update_and_render *GameUpdateAndRender;
   game_get_sound_samples *GameGetSoundSamples;
+  bool32 isValid;
+  void *gameCodeDLL;
 } raylibGameCode;
 
 internal raylibGameCode LoadGameCode() {
-  raylibGameCode result = {};
-  result.GameUpdateAndRender = GameUpdateAndRenderStub;
-  result.GameGetSoundSamples = GameGetSoundSamplesStub;
 
-  void *gameCodeDLL = dlopen("GameLibraryFullPath", RTLD_NOW);
-  if (gameCodeDLL) {
-    result.GameUpdateAndRender =
-        (game_update_and_render *)dlsym(gameCodeDLL, "GameUpdateAndRender");
-    result.GameGetSoundSamples =
-        (game_get_sound_samples *)dlsym(gameCodeDLL, "GameGetSoundSamples");
+  raylibGameCode result = {};
+  result.isValid = false;
+
+  result.gameCodeDLL = dlopen("libgamelib.dylib", RTLD_NOW);
+  if (!result.gameCodeDLL) {
+    fprintf(stderr, "Error loading library: %s\n", dlerror());
+  }
+  if (result.gameCodeDLL) {
+    result.GameUpdateAndRender = (game_update_and_render *)dlsym(
+        result.gameCodeDLL, "GameUpdateAndRender");
+    result.GameGetSoundSamples = (game_get_sound_samples *)dlsym(
+        result.gameCodeDLL, "GameGetSoundSamples");
+    result.isValid = (result.GameUpdateAndRender && result.GameGetSoundSamples);
   }
 
+  if (!result.isValid) {
+    result.GameUpdateAndRender = GameUpdateAndRenderStub;
+    result.GameGetSoundSamples = GameGetSoundSamplesStub;
+  }
   return result;
 }
 
@@ -178,8 +191,8 @@ int main() {
         // in raylib it's 0-4
         if (IsGamepadAvailable(controllerIndex)) {
           gameController->isConnected = true;
-          // SetGamepadVibration(controllerIndex, 0.5f, 0.5f); // not working on
-          // macos
+          // SetGamepadVibration(controllerIndex, 0.5f, 0.5f); // not working
+          // on macos
 
           gameController->stickAverageX =
               GetGamepadAxisMovement(controllerIndex, 0);
