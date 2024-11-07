@@ -232,7 +232,7 @@ if (downloadRaylib) then
         
 
 
-    project "gamelib"
+    project "game"
         kind "SharedLib"  
         language "C++"
         location "build_files/"

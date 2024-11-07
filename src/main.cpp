@@ -74,14 +74,21 @@ typedef struct {
   game_get_sound_samples *GameGetSoundSamples;
   bool32 isValid;
   void *gameCodeDLL;
+  long lastWriteTime;
 } raylibGameCode;
+
+internal void UnloadGameCode(raylibGameCode code) {
+  if (code.gameCodeDLL) {
+    dlclose(code.gameCodeDLL);
+  }
+}
 
 internal raylibGameCode LoadGameCode() {
 
   raylibGameCode result = {};
   result.isValid = false;
 
-  result.gameCodeDLL = dlopen("libgamelib.dylib", RTLD_NOW);
+  result.gameCodeDLL = dlopen("libgame.dylib", RTLD_NOW);
   if (!result.gameCodeDLL) {
     fprintf(stderr, "Error loading library: %s\n", dlerror());
   }
@@ -90,12 +97,16 @@ internal raylibGameCode LoadGameCode() {
         result.gameCodeDLL, "GameUpdateAndRender");
     result.GameGetSoundSamples = (game_get_sound_samples *)dlsym(
         result.gameCodeDLL, "GameGetSoundSamples");
-    result.isValid = (result.GameUpdateAndRender && result.GameGetSoundSamples);
+    if (result.GameUpdateAndRender && result.GameGetSoundSamples) {
+      result.isValid = true;
+      result.lastWriteTime = GetFileModTime("libgame.dylib");
+    }
   }
 
   if (!result.isValid) {
     result.GameUpdateAndRender = GameUpdateAndRenderStub;
     result.GameGetSoundSamples = GameGetSoundSamplesStub;
+    result.lastWriteTime = 0;
   }
   return result;
 }
@@ -169,6 +180,7 @@ int main() {
 
   if (samples && memory.permanentStorage) {
 
+    raylibGameCode gameCode = LoadGameCode();
     // game loop
     while (!WindowShouldClose()) {
       BeginDrawing();
@@ -244,8 +256,12 @@ int main() {
       gameSound.sampleCount = timeSpan * SAMPLE_RATE;
       u32 bytesToWrite = gameSound.sampleCount * SAMPLE_SIZE;
 
-      raylibGameCode gameCode = LoadGameCode();
-
+      long currentDLLWriteTime = GetFileModTime("libgame.dylib");
+      if (gameCode.lastWriteTime < currentDLLWriteTime) {
+        UnloadGameCode(gameCode);
+        gameCode = LoadGameCode();
+        gameCode.lastWriteTime = currentDLLWriteTime;
+      }
       gameCode.GameUpdateAndRender(&memory, &input, &imageBuffer);
       gameCode.GameGetSoundSamples(&memory, &gameSound);
 
