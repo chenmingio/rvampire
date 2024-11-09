@@ -3,7 +3,7 @@
 
 internal void GameOutputSound(GameSoundOutputBuffer *soundBuffer, u32 toneHz) {
   local_persist u32 sinIdx = 0;
-  u32 volume = 20000;
+  u32 volume = 0;
   u32 wavePeriod = soundBuffer->samplesPerSecond / toneHz;
 
   i16 *sampleOut = soundBuffer->samples;
@@ -27,6 +27,24 @@ internal void RenderWeirdGradient(GameOffscreenBuffer *imageBuffer, i32 xOffset,
       pixel++;
     }
     row += imageBuffer->pitch;
+  }
+}
+
+internal void RenderPlayer(GameOffscreenBuffer *imageBuffer, i32 xOffset,
+                           i32 yOffset) {
+  // color RGBA
+  u32 color = 0x0000FFFF; // blue
+  u32 left = xOffset;
+  u32 right = xOffset + 10;
+  u32 top = yOffset;
+  u32 bottom = yOffset + 10;
+  for (u32 y = 0; y < imageBuffer->height; y++) {
+    for (u32 x = 0; x < imageBuffer->width; x++) {
+      if (x >= left && x <= right && y >= top && y <= bottom) {
+        u32 *pixel = (u32 *)imageBuffer->memory + x + y * imageBuffer->pitch;
+        *pixel = color;
+      }
+    }
   }
 }
 
@@ -55,6 +73,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     gameState->xOffset = 0;
     gameState->yOffset = 0;
     gameState->toneHz = 512;
+    gameState->playerX = 100;
+    gameState->playerY = 100;
     gameMemory->isInitialized = true;
   }
 
@@ -62,16 +82,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     GameControllerInput *gameController = &input->Controller[GameControllerIdx];
     if (gameController->isConnected) {
       if (gameController->moveUp.EndedDown) {
-        gameState->yOffset += 1;
+        gameState->playerY -= 1;
       }
       if (gameController->moveDown.EndedDown) {
-        gameState->yOffset -= 1;
+        gameState->playerY += 1;
       }
       if (gameController->moveLeft.EndedDown) {
-        gameState->xOffset -= 1;
+        gameState->playerX -= 1;
       }
       if (gameController->moveRight.EndedDown) {
-        gameState->xOffset += 1;
+        gameState->playerX += 1;
       }
     }
   }
@@ -99,4 +119,5 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   //     }
 
   RenderWeirdGradient(imageBuffer, gameState->xOffset, gameState->yOffset);
+  RenderPlayer(imageBuffer, gameState->playerX, gameState->playerY);
 }
