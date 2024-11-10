@@ -5,6 +5,7 @@
 #include "string.h"
 #include "vampire.h"
 #include <assert.h>
+#include <cstddef>
 #include <dlfcn.h>
 #include <stdbool.h>
 #include <stdlib.h> // Required for: malloc(), free()
@@ -120,6 +121,32 @@ AudioStream setupAudio() {
   return stream;
 }
 
+void BeginRecordingInput(RayLibState *state) {
+  state->writeInputStream = fopen("recording.vmi", "wb");
+}
+
+void BeginPlaybackInput(RayLibState *state) {
+  state->readInputStream = fopen("recording.vmi", "rb");
+}
+
+void EndRecordingInput(RayLibState *state) { fclose(state->writeInputStream); }
+
+void EndPlaybackInput(RayLibState *state) { fclose(state->readInputStream); }
+
+void RecordInput(RayLibState *state, GameInput *input) {
+  size_t written = fwrite(input, sizeof(*input), 1, state->writeInputStream);
+  if (written != 1) {
+    fprintf(stderr, "Failed to write input to file\n");
+  }
+}
+
+void LoopReadInput(RayLibState *state, GameInput *input) {
+  size_t count = fread(input, sizeof(GameInput), 1, state->readInputStream);
+  if (count == 0) {
+    fseek(state->readInputStream, 0, SEEK_SET);
+  }
+}
+
 int main() {
 
   SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
@@ -165,6 +192,7 @@ int main() {
   GameControllerInput *keyboardController = &input.Controller[0];
   keyboardController->isConnected = true;
 
+  RayLibState state = {};
   GameMemory memory = {};
   memory.permanentStorageSize = Megabytes(64);
   memory.transientStorageSize = Gigabytes(4);
@@ -173,24 +201,42 @@ int main() {
   memory.DebugPlatformWriteEntireFile = DebugPlatformWriteEntireFile;
   memory.DebugPlatformFreeFileMemory = DebugPlatformFreeFileMemory;
 #endif
-  size_t totalSize = memory.permanentStorageSize + memory.transientStorageSize;
-  memory.permanentStorage = (u8 *)calloc(1, totalSize);
+  state.totalSize = memory.permanentStorageSize + memory.transientStorageSize;
+  memory.permanentStorage = (u8 *)calloc(1, state.totalSize);
   memory.transientStorage =
       memory.permanentStorage + memory.permanentStorageSize;
 
   if (samples && memory.permanentStorage) {
 
     raylibGameCode gameCode = LoadGameCode();
+
     // game loop
     while (!WindowShouldClose()) {
       BeginDrawing();
       ClearBackground(BLACK);
 
+      // TODO put key press count into transient count
       keyboardController->moveUp.EndedDown = IsKeyDown(KEY_UP);
       keyboardController->moveDown.EndedDown = IsKeyDown(KEY_DOWN);
       keyboardController->moveRight.EndedDown = IsKeyDown(KEY_RIGHT);
       keyboardController->moveLeft.EndedDown = IsKeyDown(KEY_LEFT);
 
+      if (IsKeyPressed(KEY_L)) {
+        if (state.isRecording) {
+          // stop recording and start replaying
+          state.isRecording = false;
+          state.isReplaying = true;
+          EndRecordingInput(&state);
+          BeginPlaybackInput(&state);
+        } else if (state.isReplaying) {
+          // stop replaying
+          state.isReplaying = false;
+          EndPlaybackInput(&state);
+        } else {
+          state.isRecording = true;
+          BeginRecordingInput(&state);
+        }
+      }
       u32 maxControllerCount = 4;
       if (maxControllerCount > ArrayCount(input.Controller) - 1) {
         maxControllerCount = ArrayCount(input.Controller) - 1;
@@ -245,6 +291,18 @@ int main() {
         } else {
           gameController->isConnected = false;
         }
+      }
+
+      if (state.isRecording) {
+        RecordInput(&state, &input);
+      } else if (state.isReplaying) {
+        LoopReadInput(&state, &input);
+      }
+
+      if (state.isRecording) {
+        DrawText("Recording", 10, 10, 20, RED);
+      } else if (state.isReplaying) {
+        DrawText("Replaying", 10, 10, 20, GREEN);
       }
 
       r32 timeSpan = GetFrameTime();

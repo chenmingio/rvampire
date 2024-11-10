@@ -2,8 +2,10 @@
 
 #include "vampire.h"
 
+#include <cstddef>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
@@ -22,3 +24,14 @@ typedef struct {
   u32 sampleRate;
   u32 duration;
 } RayLibSoundOutput;
+
+typedef struct {
+  size_t totalSize;
+
+  FILE *writeInputStream;
+  FILE *readInputStream;
+
+  bool32 isRecording;
+  bool32 isReplaying;
+
+} RayLibState;

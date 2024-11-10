@@ -82,16 +82,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     GameControllerInput *gameController = &input->Controller[GameControllerIdx];
     if (gameController->isConnected) {
       if (gameController->moveUp.EndedDown) {
-        gameState->playerY -= 1;
+        gameState->playerY -= 10;
       }
       if (gameController->moveDown.EndedDown) {
-        gameState->playerY += 1;
+        gameState->playerY += 10;
       }
       if (gameController->moveLeft.EndedDown) {
-        gameState->playerX -= 1;
+        gameState->playerX -= 10;
       }
       if (gameController->moveRight.EndedDown) {
-        gameState->playerX += 1;
+        gameState->playerX += 10;
       }
     }
   }
