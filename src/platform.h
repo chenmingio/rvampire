@@ -34,4 +34,6 @@ typedef struct {
   bool32 isRecording;
   bool32 isReplaying;
 
+  void *gameMemoryBlock;
+
 } RayLibState;

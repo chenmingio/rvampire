@@ -123,10 +123,12 @@ AudioStream setupAudio() {
 
 void BeginRecordingInput(RayLibState *state) {
   state->writeInputStream = fopen("recording.vmi", "wb");
+  fwrite(state->gameMemoryBlock, state->totalSize, 1, state->writeInputStream);
 }
 
 void BeginPlaybackInput(RayLibState *state) {
   state->readInputStream = fopen("recording.vmi", "rb");
+  fread(state->gameMemoryBlock, state->totalSize, 1, state->readInputStream);
 }
 
 void EndRecordingInput(RayLibState *state) { fclose(state->writeInputStream); }
@@ -195,7 +197,7 @@ int main() {
   RayLibState state = {};
   GameMemory memory = {};
   memory.permanentStorageSize = Megabytes(64);
-  memory.transientStorageSize = Gigabytes(4);
+  memory.transientStorageSize = Gigabytes(1);
 #if HANDMADE_INTERNAL
   memory.DebugPlatformReadEntireFile = DebugPlatformReadEntireFile;
   memory.DebugPlatformWriteEntireFile = DebugPlatformWriteEntireFile;
@@ -203,6 +205,7 @@ int main() {
 #endif
   state.totalSize = memory.permanentStorageSize + memory.transientStorageSize;
   memory.permanentStorage = (u8 *)calloc(1, state.totalSize);
+  state.gameMemoryBlock = memory.permanentStorage;
   memory.transientStorage =
       memory.permanentStorage + memory.permanentStorageSize;
 
