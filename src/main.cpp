@@ -146,10 +146,13 @@ void LoopReadInput(RayLibState *state, GameInput *input) {
   size_t count = fread(input, sizeof(GameInput), 1, state->readInputStream);
   if (count == 0) {
     fseek(state->readInputStream, 0, SEEK_SET);
+    fread(input, sizeof(GameInput), 1, state->readInputStream);
   }
 }
 
 int main() {
+  int monitorRefreshRate = GetMonitorRefreshRate(GetCurrentMonitor());
+  TraceLog(LOG_INFO, "Monitor refresh rate: %d", monitorRefreshRate);
 
   SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
   SetTargetFPS(60);
@@ -212,9 +215,16 @@ int main() {
   if (samples && memory.permanentStorage) {
 
     raylibGameCode gameCode = LoadGameCode();
+    bool32 isPaused = false;
 
     // game loop
     while (!WindowShouldClose()) {
+      // will freeze the process after recover
+#if 0
+      if (isPaused) {
+        continue;
+      }
+#endif
       BeginDrawing();
       ClearBackground(BLACK);
 
@@ -223,6 +233,10 @@ int main() {
       keyboardController->moveDown.EndedDown = IsKeyDown(KEY_DOWN);
       keyboardController->moveRight.EndedDown = IsKeyDown(KEY_RIGHT);
       keyboardController->moveLeft.EndedDown = IsKeyDown(KEY_LEFT);
+
+      if (IsKeyPressed(KEY_P)) {
+        isPaused = !isPaused;
+      }
 
       if (IsKeyPressed(KEY_L)) {
         if (state.isRecording) {
