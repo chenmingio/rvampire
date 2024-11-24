@@ -146,17 +146,24 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   //       warriorIdx %= warriorRefreshFrames * warriorNumbers;
   //     }
 
-  RenderWeirdGradient(imageBuffer, gameState->xOffset, gameState->yOffset);
+  // RenderWeirdGradient(imageBuffer, gameState->xOffset, gameState->yOffset);
+
+  // AABBGGRR
+  // drawRectangle(imageBuffer, 100, 100, 100, 100, 0xFFFFFFFF);
+  // drawRectangle(imageBuffer, 100, 200, 100, 100, 0x00FFFFFF);
+  // drawRectangle(imageBuffer, 100, 300, 100, 100, 0xFF0000FF);
+  // drawRectangle(imageBuffer, 100, 400, 100, 100, 0xFFFF0000);
+  // drawRectangle(imageBuffer, 100, 500, 100, 100, 0xFF00FF00);
+
+  u32 count = 0;
+  for (u32 y = 0; y < mapHeight; y++) {
+    for (u32 x = 0; x < mapWidth; x++) {
+      if (map[y][x] == 1) {
+        drawRectangle(imageBuffer, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE,
+                      TILE_SIZE, 0xFF00FFFF + 1000 * count++);
+      }
+    }
+  }
+
   RenderPlayer(imageBuffer, gameState->playerX, gameState->playerY);
-
-  drawRectangle(imageBuffer, 100, 100, 100, 100, 0xFFFFFFFF);
-
-  // for (u32 y = 0; y < mapHeight; y++) {
-  //   for (u32 x = 0; x < mapWidth; x++) {
-  //     if (map[y][x] == 1) {
-  //       drawRectangle(imageBuffer, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE,
-  //                     TILE_SIZE, 0x00FF00FF);
-  //     }
-  //   }
-  // }
 }
