@@ -160,3 +160,7 @@ typedef struct {
   u32 playerX;
   u32 playerY;
 } GameState;
+
+typedef struct {
+
+} Tile;

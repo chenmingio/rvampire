@@ -1,6 +1,8 @@
 #include "vampire.h"
 #include <math.h>
 
+#define TILE_SIZE 320
+
 internal void GameOutputSound(GameSoundOutputBuffer *soundBuffer, u32 toneHz) {
   local_persist u32 sinIdx = 0;
   u32 volume = 0;
@@ -48,6 +50,27 @@ internal void RenderPlayer(GameOffscreenBuffer *imageBuffer, i32 xOffset,
   }
 }
 
+internal u32 roundR32ToU32(r32 value) {
+  u32 result = (u32)(value + 0.5f);
+  return result;
+}
+
+internal void drawRectangle(GameOffscreenBuffer *imageBuffer, r32 x, r32 y,
+                            r32 width, r32 height, u32 color) {
+  u32 minX = roundR32ToU32(x);
+  u32 minY = roundR32ToU32(y);
+  u32 maxX = roundR32ToU32(x + width);
+  u32 maxY = roundR32ToU32(y + height);
+  u32 *row = (u32 *)imageBuffer->memory;
+  for (u32 j = minY; j < maxY; j++) {
+    for (u32 i = minX; i < maxX; i++) {
+      u32 *pixel = row + i + j * imageBuffer->pitch;
+      *pixel = color;
+      pixel++;
+    }
+  }
+}
+
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
   GameState *gameState = (GameState *)gameMemory->permanentStorage;
   Assert(sizeof(GameState) <= gameMemory->permanentStorageSize);
@@ -57,6 +80,7 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   GameState *gameState = (GameState *)gameMemory->permanentStorage;
   Assert(sizeof(GameState) <= gameMemory->permanentStorageSize);
+
   if (!gameMemory->isInitialized) {
 #if HANDMADE_INTERNAL
     const char *filename = "Warrior_Red.png";
@@ -77,6 +101,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     gameState->playerY = 100;
     gameMemory->isInitialized = true;
   }
+
+#define mapWidth (1280 / TILE_SIZE)
+#define mapHeight (720 / TILE_SIZE)
+  u32 map[mapHeight][mapWidth] = {{1, 0, 1, 1}, {1, 0, 1, 1}};
 
   for (i32 GameControllerIdx = 0; GameControllerIdx < 4; GameControllerIdx++) {
     GameControllerInput *gameController = &input->Controller[GameControllerIdx];
@@ -120,4 +148,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
   RenderWeirdGradient(imageBuffer, gameState->xOffset, gameState->yOffset);
   RenderPlayer(imageBuffer, gameState->playerX, gameState->playerY);
+
+  drawRectangle(imageBuffer, 100, 100, 100, 100, 0xFFFFFFFF);
+
+  // for (u32 y = 0; y < mapHeight; y++) {
+  //   for (u32 x = 0; x < mapWidth; x++) {
+  //     if (map[y][x] == 1) {
+  //       drawRectangle(imageBuffer, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE,
+  //                     TILE_SIZE, 0x00FF00FF);
+  //     }
+  //   }
+  // }
 }
