@@ -7,8 +7,8 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 720
+#define SCREEN_WIDTH 960
+#define SCREEN_HEIGHT 540
 
 #define SAMPLE_SIZE sizeof(i16) * 2
 #define MAX_SAMPLES_PER_UPDATE 4096 // about 1/10 of a second
