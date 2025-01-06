@@ -1,5 +1,5 @@
 #include "debug.h"
-#include "platform.h"
+#include "handmade_platform.h"
 
 void DrawSoundWave(void *data, size_t fullX, u32 lines) {
   i16 *d = (i16 *)data;

@@ -1,9 +1,9 @@
 #include "debug.h"
-#include "platform.h"
+#include "handmade.h"
+#include "handmade_platform.h"
 #include "raylib.h"
 #include "resource_dir.h" // utility header for SearchAndSetResourceDir
 #include "string.h"
-#include "vampire.h"
 #include <assert.h>
 #include <cstddef>
 #include <dlfcn.h>

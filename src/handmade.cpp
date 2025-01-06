@@ -1,4 +1,4 @@
-#include "vampire.h"
+#include "handmade.h"
 #include <math.h>
 
 internal u32 roundR32ToU32(r32 value) {
@@ -35,27 +35,11 @@ internal void drawRectangle(GameOffscreenBuffer *imageBuffer, r32 x, r32 y,
   }
 }
 
-internal void RenderWeirdGradient(GameOffscreenBuffer *imageBuffer, i32 xOffset,
-                                  i32 yOffset) {
-  u32 *row = (u32 *)imageBuffer->memory;
-  for (u32 y = 0; y < imageBuffer->height; y++) {
-    u32 *pixel = row;
-    for (u32 x = 0; x < imageBuffer->width; x++) {
-      u8 green = (u8)(x + xOffset);
-      u8 blue = (u8)(y + yOffset);
-      u32 color = 0xFF << 24 | (green << 16) | (blue << 8) | 0xFF;
-      *pixel = color;
-      pixel++;
-    }
-    row += imageBuffer->pitch;
-  }
-}
-
 internal void RenderPlayer(GameOffscreenBuffer *imageBuffer, i32 xOffset,
-                           i32 yOffset) {
+                           i32 yOffset, i32 width, i32 height) {
   // color RGBA
   u32 color = 0xFFFFFFFF; // blue
-  drawRectangle(imageBuffer, xOffset, yOffset, 50, 50, color);
+  drawRectangle(imageBuffer, xOffset, yOffset, width, height, color);
 }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
@@ -85,15 +69,20 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     gameState->xOffset = 0;
     gameState->yOffset = 0;
     gameState->toneHz = 512;
-    gameState->playerX = 100;
-    gameState->playerY = 100;
+    gameState->playerX = 10;
+    gameState->playerY = 10;
     gameMemory->isInitialized = true;
   }
   i32 screenWidth = 960;
   i32 screenHeight = 540;
-  i32 tileSize = 50;
   i32 leftOffsetX = 40;
   i32 leftOffsetY = 40;
+
+  r32 playerWidth = 1.2;
+  r32 playerHeight = 1.8;
+  i32 tileSize = 2;
+
+  r32 meterToPixel = 20;
 
   u32 map[9][17] = {
       {1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -123,6 +112,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         gameState->playerX += 10;
       }
     }
+  }
+
+  if (gameState->playerX < 0) {
+    gameState->playerX = 0;
+  }
+
+  if (gameState->playerY < 0) {
+    gameState->playerY = 0;
   }
 
   //       // draw warrior on buffer
@@ -157,16 +154,19 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   // drawRectangle(imageBuffer, 100, 500, 100, 100, 0xFF00FF00);
   drawRectangle(imageBuffer, 0, 0, screenWidth, screenHeight, 0xFFFFFF00);
 
+  // draw tiles in pixel
+  i32 tileSizeInPixel = tileSize * meterToPixel;
   u32 count = 0;
   for (u32 y = 0; y < 9; y++) {
     for (u32 x = 0; x < 17; x++) {
       if (map[y][x] == 1) {
-        drawRectangle(imageBuffer, leftOffsetX + x * tileSize,
-                      leftOffsetY + y * tileSize, tileSize, tileSize,
-                      0xFF00FFFF);
+        drawRectangle(imageBuffer, leftOffsetX + x * tileSizeInPixel,
+                      leftOffsetY + y * tileSizeInPixel, tileSizeInPixel,
+                      tileSizeInPixel, 0xFF00FFFF);
       }
     }
   }
 
-  RenderPlayer(imageBuffer, gameState->playerX, gameState->playerY);
+  RenderPlayer(imageBuffer, gameState->playerX, gameState->playerY,
+               playerWidth * meterToPixel, playerHeight * meterToPixel);
 }

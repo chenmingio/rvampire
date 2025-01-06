@@ -1,10 +1,8 @@
 #pragma once
-
-#include "vampire.h"
-
 #include <cstddef>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #define SCREEN_WIDTH 960
@@ -14,6 +12,20 @@
 #define MAX_SAMPLES_PER_UPDATE 4096 // about 1/10 of a second
 #define SAMPLE_RATE 48000
 #define MAX_SAMPLES_SECONDS 3
+
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+typedef float r32;
+typedef double r64;
+typedef int32_t bool32;
 
 typedef struct {
   u8 *writeCursor;

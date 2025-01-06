@@ -238,7 +238,7 @@ if (downloadRaylib) then
         location "build_files/"
         targetdir "../resources"
 
-        files {"../src/vampire.cpp"}
+        files {"../src/handmade.cpp"}
         includedirs { "include" }
 
         filter "system:macosx"
