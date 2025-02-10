@@ -241,6 +241,8 @@ if (downloadRaylib) then
         files {"../src/handmade.cpp"}
         includedirs { "include" }
 
+        cppdialect "C++11"
+
         filter "system:macosx"
             defines { "MYLIBRARY_EXPORTS" }  
 

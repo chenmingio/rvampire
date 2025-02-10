@@ -1,4 +1,5 @@
 #pragma once
+#include "handmade_math.h"
 #include "handmade_platform.h"
 #include <assert.h>
 #include <stddef.h>
@@ -143,8 +144,7 @@ typedef struct {
   i32 xOffset;
   i32 yOffset;
   u32 toneHz;
-  u32 playerX;
-  u32 playerY;
+  v2 playerPos;
 } GameState;
 
 typedef struct {
