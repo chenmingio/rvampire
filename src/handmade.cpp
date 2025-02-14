@@ -86,7 +86,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   // in meter
   r32 playerWidthMeter = 1.2;
   r32 playerHeightMeter = 1.8;
-  i32 tileSizeMeter = 2;
+  r32 tileSizeMeter = 2.0f;
 
   r32 meterToPixel = 26;
 
@@ -103,7 +103,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   };
 
   v2 nextPlayerPos;
-  v2 unit;
+  v2 unit = {0, 0}; // 初始化为零向量
 
   for (i32 GameControllerIdx = 0; GameControllerIdx < 4; GameControllerIdx++) {
     GameControllerInput *gameController = &input->Controller[GameControllerIdx];
