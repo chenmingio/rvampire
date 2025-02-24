@@ -98,9 +98,11 @@ typedef struct {
 #define DEBUG_PLATFORM_READ_ENTIRE_FILE(name)                                  \
   debug_read_file_result name(const char *filename)
 // function pointer type in foo_bar_baz format
+// expand as: typedef debug_read_file_result (*name)(const char *filename);
 typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(debug_platform_read_entire_file);
 // function declaration in FooBarBaz format
 DEBUG_PLATFORM_READ_ENTIRE_FILE(DebugPlatformReadEntireFile);
+// function implementation in main.cpp
 
 #define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name)                                 \
   bool32 name(const char *filename, size_t size, void *memory)
