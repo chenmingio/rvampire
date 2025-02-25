@@ -27,6 +27,11 @@ typedef float r32;
 typedef double r64;
 typedef int32_t bool32;
 
+// size_t is for memory size and index, adaptive on
+// different platforms, maximum 64. malloc return
+// size_t type as system default.
+typedef size_t memory_index;
+
 typedef struct {
   u8 *writeCursor;
   u8 *readCursor;

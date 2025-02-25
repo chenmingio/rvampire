@@ -69,6 +69,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
 #endif
 
+    // use permanent storage for dynamic memory objects, which should be reused
+    // after game lib reload
+    initializeArena(&gameMemory->worldArena,
+                    gameMemory->permanentStorageSize - sizeof(GameState),
+                    gameMemory->permanentStorage + sizeof(GameState));
+
     gameState->xOffset = 0;
     gameState->yOffset = 0;
     gameState->toneHz = 512;
@@ -103,7 +109,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   };
 
   v2 nextPlayerPos;
-  v2 unit = {0, 0}; // 初始化为零向量
+  v2 unit = {0, 0};
 
   for (i32 GameControllerIdx = 0; GameControllerIdx < 4; GameControllerIdx++) {
     GameControllerInput *gameController = &input->Controller[GameControllerIdx];
@@ -126,7 +132,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   r32 playerSpeed = 10.0f;
   nextPlayerPos = gameState->playerPos + unit * playerSpeed;
 
-  bool32 isOccupied = false;
+  i32 row = (i32)nextPlayerPos.y;
+  i32 col = (i32)nextPlayerPos.x;
+  bool32 isOccupied = map[row][col] != 0;
 
   if (!isOccupied) {
     gameState->playerPos = nextPlayerPos;
@@ -170,6 +178,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
   for (u32 y = 0; y < 9; y++) {
     for (u32 x = 0; x < 17; x++) {
+      u32 *slot = PushStruct(&gameMemory->worldArena, u32);
+      *slot = x;
       if (map[y][x] == 1) {
         rectangle2 tile = {{(r32)x * tileSizeInPixel, (r32)y * tileSizeInPixel},
                            {(r32)((x + 1) * tileSizeInPixel),

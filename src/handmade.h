@@ -1,8 +1,22 @@
 #pragma once
 #include "handmade_math.h"
 #include "handmade_platform.h"
+#include <MacTypes.h>
 #include <assert.h>
 #include <stddef.h>
+
+typedef struct {
+  u8 *base; // use u8 * to support ptr++ operation
+  memory_index used;
+  memory_index size;
+} GameArena;
+
+// base use void * to support any type input
+inline void initializeArena(GameArena *arena, memory_index size, void *base) {
+  arena->base = (u8 *)base;
+  arena->used = 0;
+  arena->size = size;
+}
 
 // private to the file (function)
 #define internal static
@@ -24,6 +38,20 @@
 #define Gigabytes(Value) (Megabytes(Value) * 1024LL)
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
+// function definition in header will be copied into calling files multiple
+// times function definition in cpp file will be used as reference function
+// pointer inline will inline all function definitions copies
+inline void *pushSize(GameArena *arena, memory_index size) {
+  Assert(arena->used + size <= arena->size);
+  void *result = arena->base + arena->used;
+  arena->used += size;
+  return result;
+}
+
+#define PushStruct(arena, type) (type *)pushSize(arena, sizeof(type))
+#define PushStructArray(arena, type, count)                                    \
+  (type *)pushSize(arena, sizeof(type) * count)
 
 inline u32 SafeTruncateUInt64(u64 Value) {
   // TODO(casey): Defines for maximum values
@@ -85,7 +113,6 @@ typedef struct {
   u32 width;
   u32 height;
   u32 pitch;
-
 } GameOffscreenBuffer;
 
 #if HANDMADE_INTERNAL
@@ -122,6 +149,8 @@ typedef struct {
 
   u8 *transientStorage;
   size_t transientStorageSize;
+
+  GameArena worldArena;
 
 #if HANDMADE_INTERNAL
   debug_platform_read_entire_file *DebugPlatformReadEntireFile;
