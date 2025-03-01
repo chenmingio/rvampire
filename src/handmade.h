@@ -6,9 +6,9 @@
 #include <stddef.h>
 
 typedef struct {
-  u8 *base; // use u8 * to support ptr++ operation
+  u8 *base; // use u8 * to support ptr++ operation. void * needs casting
   memory_index used;
-  memory_index size;
+  memory_index size; // used for assertion
 } GameArena;
 
 // base use void * to support any type input
@@ -171,13 +171,69 @@ inline GAME_UPDATE_AND_RENDER(GameUpdateAndRenderStub) {}
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 inline GAME_GET_SOUND_SAMPLES(GameGetSoundSamplesStub) {}
 
+typedef enum {
+  EntityTypePlayer,
+  EntityTypeZombie,
+  EntityTypeWall,
+} EntityType;
+
+typedef struct {
+  i32 x;
+  i32 y;
+  r32 relX;
+  r32 relY;
+} WorldPos;
+
+// WorldPos is now defined in handmade_math.h
+typedef struct {
+  WorldPos pos;
+  EntityType type;
+} Entity;
+
+typedef struct EntityElement {
+  Entity *entity;
+  struct EntityElement *next;
+} EntityElement;
+
 typedef struct {
   i32 xOffset;
   i32 yOffset;
   u32 toneHz;
-  v2 playerPos;
+  Entity *player;
 } GameState;
 
 typedef struct {
 
 } Tile;
+
+// better with mod operation?
+inline WorldPos regulateWorldPosition(WorldPos pos) {
+  while (pos.relX > 1) {
+    pos.x += 1;
+    pos.relX -= 1.0;
+  }
+
+  while (pos.relX < 0) {
+    pos.x -= 1;
+    pos.relX += 1.0;
+  }
+
+  while (pos.relY > 1) {
+    pos.y += 1;
+    pos.relY -= 1.0;
+  }
+
+  while (pos.relY < 0) {
+    pos.y -= 1;
+    pos.relY += 1.0;
+  }
+
+  return pos;
+}
+
+inline WorldPos operator+(WorldPos pos, v2 delta) {
+  return regulateWorldPosition(
+      (WorldPos){pos.x, pos.y, pos.relX + delta.x, pos.relY + delta.y});
+}
+
+inline WorldPos operator+(v2 delta, WorldPos pos) { return pos + delta; }

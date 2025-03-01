@@ -1,3 +1,4 @@
+#pragma once
 #include "handmade_platform.h"
 
 // union v2 {

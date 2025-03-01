@@ -1,4 +1,5 @@
 #include "handmade.h"
+#include "handmade_math.h"
 #include "handmade_platform.h"
 #include <math.h>
 
@@ -36,12 +37,13 @@ internal void drawRectangle(GameOffscreenBuffer *imageBuffer, rectangle2 rec,
   }
 }
 
-internal void RenderPlayer(GameOffscreenBuffer *imageBuffer, v2 playerPos,
+internal void RenderPlayer(GameOffscreenBuffer *imageBuffer, WorldPos playerPos,
                            i32 width, i32 height) {
   // color RGBA
   u32 color = 0xFFFFFFFF; // blue
-  rectangle2 player = {{playerPos.x, playerPos.y},
-                       {playerPos.x + width, playerPos.y + height}};
+  r32 x = playerPos.x + playerPos.x;
+  r32 y = playerPos.y + playerPos.y;
+  rectangle2 player = {{x, y}, {x + width, y + height}};
   drawRectangle(imageBuffer, player, color);
 }
 
@@ -78,7 +80,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     gameState->xOffset = 0;
     gameState->yOffset = 0;
     gameState->toneHz = 512;
-    gameState->playerPos = {10, 10};
     gameMemory->isInitialized = true;
   }
 
@@ -96,6 +97,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
   r32 meterToPixel = 26;
 
+  EntityElement entities;
+
+  Entity *hero = PushStruct(&gameMemory->worldArena, Entity);
+  hero->pos = WorldPos{10, 10, 0.34, 0.54};
+  hero->type = EntityTypePlayer;
+  gameState->player = hero;
+
+  entities.entity = hero;
+  entities.next = NULL;
+
   u32 map[9][17] = {
       {1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1},
       {1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
@@ -108,7 +119,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
       {1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1},
   };
 
-  v2 nextPlayerPos;
+  WorldPos nextPlayerPos;
   v2 unit = {0, 0};
 
   for (i32 GameControllerIdx = 0; GameControllerIdx < 4; GameControllerIdx++) {
@@ -130,15 +141,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   }
 
   r32 playerSpeed = 10.0f;
-  nextPlayerPos = gameState->playerPos + unit * playerSpeed;
+  nextPlayerPos = gameState->player->pos + (unit * playerSpeed);
 
   i32 row = (i32)nextPlayerPos.y;
   i32 col = (i32)nextPlayerPos.x;
   bool32 isOccupied = map[row][col] != 0;
 
-  if (!isOccupied) {
-    gameState->playerPos = nextPlayerPos;
-  }
+  // if (!isOccupied) {
+  //   gameState->playerPos = nextPlayerPos;
+  // }
 
   //       // draw warrior on buffer
   //   local_persist Image warriorRaw = LoadImage("Warrior_Red.png");
@@ -189,7 +200,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
   }
 
-  RenderPlayer(imageBuffer, gameState->playerPos,
+  RenderPlayer(imageBuffer, gameState->player->pos,
                playerWidthMeter * meterToPixel,
                playerHeightMeter * meterToPixel);
 }
