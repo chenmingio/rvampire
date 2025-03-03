@@ -3,6 +3,17 @@
 #include "handmade_platform.h"
 #include <math.h>
 
+#define RED 0xFF0000FF
+#define WHITE 0xFFFFFFFF
+#define BLACK 0xFF000000
+#define GREEN 0xFF00FF00
+#define BLUE 0xFF0000FF
+
+internal i32 roundR32ToI32(r32 value) {
+  i32 result = (i32)(value + 0.5f);
+  return result;
+}
+
 internal u32 roundR32ToU32(r32 value) {
   u32 result = (u32)(value + 0.5f);
   return result;
@@ -25,13 +36,51 @@ internal void GameOutputSound(GameSoundOutputBuffer *soundBuffer, u32 toneHz) {
 // minX/Y is relative to the top-left corner
 internal void drawRectangle(GameOffscreenBuffer *imageBuffer, rectangle2 rec,
                             u32 color) {
-  u32 minX = imageBuffer->width / 2 + roundR32ToU32(rec.Min.x);
-  u32 maxX = minX + roundR32ToU32(rec.Max.x - rec.Min.x);
-  u32 minY = imageBuffer->height / 2 - roundR32ToU32(rec.Max.y);
-  u32 maxY = minY + roundR32ToU32(rec.Max.y - rec.Min.y);
+
+  Assert(rec.Min.x <= rec.Max.x);
+  Assert(rec.Min.y <= rec.Max.y);
+  i32 minX = imageBuffer->width / 2 + roundR32ToI32(rec.Min.x);
+  i32 maxX = minX + roundR32ToI32(rec.Max.x - rec.Min.x);
+  i32 minY = imageBuffer->height / 2 - roundR32ToI32(rec.Max.y);
+  i32 maxY = minY + roundR32ToI32(rec.Max.y - rec.Min.y);
+
+  if (minX < 0) {
+    minX = 0;
+  }
+
+  if (minX > (i32)imageBuffer->width) {
+    minX = (i32)imageBuffer->width;
+  }
+
+  if (maxX < 0) {
+    maxX = 0;
+  }
+
+  if (maxX > (i32)imageBuffer->width) {
+    maxX = (i32)imageBuffer->width;
+  }
+
+  if (minY < 0) {
+    minY = 0;
+  }
+
+  if (minY > (i32)imageBuffer->height) {
+    minY = (i32)imageBuffer->height;
+  }
+
+  if (maxY < 0) {
+    maxY = 0;
+  }
+  if (maxY > (i32)imageBuffer->height) {
+    maxY = (i32)imageBuffer->height;
+  }
+
+  Assert(minX <= maxX);
+  Assert(minY <= maxY);
+
   u32 *row = (u32 *)imageBuffer->memory;
-  for (u32 j = minY; j < maxY; j++) {
-    for (u32 i = minX; i < maxX; i++) {
+  for (i32 j = minY; j < maxY; j++) {
+    for (i32 i = minX; i < maxX; i++) {
       u32 *pixel = row + i + j * imageBuffer->pitch;
       *pixel = color;
       pixel++;
@@ -41,15 +90,12 @@ internal void drawRectangle(GameOffscreenBuffer *imageBuffer, rectangle2 rec,
 
 internal void RenderPlayer(GameOffscreenBuffer *imageBuffer, WorldPos playerPos,
                            i32 width, i32 height) {
-  // color RGBA
-  u32 color = 0xFFFFFFFF; // blue
+  u32 color = WHITE;
   r32 x = playerPos.x + playerPos.x;
   r32 y = playerPos.y + playerPos.y;
   rectangle2 player = {{x, y}, {x + width, y + height}};
   drawRectangle(imageBuffer, player, color);
 }
-
-internal void pushToEntities(EntityElement *array, Entity *entity) {}
 
 inline v2 worldPosToV2(WorldPos pos) {
   return (v2){(r32)pos.x + pos.relX, (r32)pos.y + pos.relY};
@@ -105,7 +151,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
 
     Entity *hero = PushStruct(&gameMemory->worldArena, Entity);
-    hero->pos = WorldPos{10, 10, 0.34, 0.54};
+    hero->pos = WorldPos{0, 0, 0, 0};
     hero->type = EntityTypePlayer;
     gameState->player = hero;
 
@@ -164,8 +210,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     }
   }
 
-  r32 playerSpeed = 10.0f;
+  r32 playerSpeed = 5.0f * timeSpan;
   nextPlayerPos = gameState->player->pos + (unit * playerSpeed);
+  gameState->player->pos = nextPlayerPos;
+  gameState->cameraPos = nextPlayerPos;
 
   // i32 row = (i32)nextPlayerPos.y;
   // i32 col = (i32)nextPlayerPos.x;
@@ -199,14 +247,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
   // RenderWeirdGradient(imageBuffer, gameState->xOffset, gameState->yOffset);
 
-  // AABBGGRR
-  // drawRectangle(imageBuffer, 100, 100, 100, 100, 0xFFFFFFFF);
-  // drawRectangle(imageBuffer, 100, 200, 100, 100, 0x00FFFFFF);
-  // drawRectangle(imageBuffer, 100, 300, 100, 100, 0xFF0000FF);
-  // drawRectangle(imageBuffer, 100, 400, 100, 100, 0xFFFF0000);
-  // drawRectangle(imageBuffer, 100, 500, 100, 100, 0xFF00FF00);
-  rectangle2 screenRect = {{0, 0}, {(r32)screenWidth, (r32)screenHeight}};
-  drawRectangle(imageBuffer, screenRect, 0xFFFFFF00);
+  rectangle2 screenRect = {{-(r32)screenWidth / 2, -(r32)screenHeight / 2},
+                           {(r32)screenWidth, (r32)screenHeight}};
+  drawRectangle(imageBuffer, screenRect, GREEN);
 
   // draw tiles in pixel
   rectangle2 tileRectangle =
@@ -217,8 +260,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     Entity *entity = gameState->entities[entityIndex];
     if (entity->type == EntityTypeWall) {
       v2 relPos = relativePosition(entity->pos, gameState->cameraPos);
-      drawRectangle(imageBuffer, (tileRectangle + relPos) * meterToPixel,
-                    0xFF0000FF);
+      drawRectangle(imageBuffer, (tileRectangle + relPos) * meterToPixel, RED);
     }
   }
 

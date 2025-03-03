@@ -162,7 +162,7 @@ typedef struct {
 
 #define GAME_UPDATE_AND_RENDER(name)                                           \
   void name(GameMemory *gameMemory, GameInput *input,                          \
-            GameOffscreenBuffer *imageBuffer)
+            GameOffscreenBuffer *imageBuffer, r32 timeSpan)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 inline GAME_UPDATE_AND_RENDER(GameUpdateAndRenderStub) {}
 

@@ -155,7 +155,7 @@ int main() {
   TraceLog(LOG_INFO, "Monitor refresh rate: %d", monitorRefreshRate);
 
   SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
-  SetTargetFPS(60);
+  SetTargetFPS(TARGET_FRAME_RATE);
   SetTraceLogLevel(LOG_WARNING);
 
   int screenWidth = SCREEN_WIDTH;
@@ -337,7 +337,7 @@ int main() {
         gameCode = LoadGameCode();
         gameCode.lastWriteTime = currentDLLWriteTime;
       }
-      gameCode.GameUpdateAndRender(&memory, &input, &imageBuffer);
+      gameCode.GameUpdateAndRender(&memory, &input, &imageBuffer, timeSpan);
       gameCode.GameGetSoundSamples(&memory, &gameSound);
 
       size_t region1Size;
