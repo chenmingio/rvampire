@@ -29,6 +29,14 @@ inline v2 operator*(v2 B, r32 A) { return A * B; }
 inline v2 operator+(v2 A, v2 B) { return V2(A.x + B.x, A.y + B.y); }
 inline v2 operator-(v2 A, v2 B) { return V2(A.x - B.x, A.y - B.y); }
 
-inline rectangle2 operator+(rectangle2 A, v2 B) {
-  return rectangle2{A.Min + B, A.Max + B};
+inline rectangle2 operator+(rectangle2 a, v2 b) {
+  return rectangle2{a.Min + b, a.Max + b};
+}
+
+inline rectangle2 operator-(rectangle2 a, v2 b) {
+  return rectangle2{a.Min - b, a.Max - b};
+}
+
+inline rectangle2 operator*(rectangle2 a, r32 s) {
+  return rectangle2{a.Min * s, a.Max * s};
 }

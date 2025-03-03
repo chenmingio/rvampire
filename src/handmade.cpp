@@ -21,12 +21,14 @@ internal void GameOutputSound(GameSoundOutputBuffer *soundBuffer, u32 toneHz) {
   }
 }
 
+// rec is relative to the screen center
+// minX/Y is relative to the top-left corner
 internal void drawRectangle(GameOffscreenBuffer *imageBuffer, rectangle2 rec,
                             u32 color) {
-  u32 minX = roundR32ToU32(rec.Min.x);
-  u32 maxX = roundR32ToU32(rec.Max.x);
-  u32 minY = roundR32ToU32(imageBuffer->height - rec.Max.y);
-  u32 maxY = roundR32ToU32(imageBuffer->height - rec.Min.y);
+  u32 minX = imageBuffer->width / 2 + roundR32ToU32(rec.Min.x);
+  u32 maxX = minX + roundR32ToU32(rec.Max.x - rec.Min.x);
+  u32 minY = imageBuffer->height / 2 - roundR32ToU32(rec.Max.y);
+  u32 maxY = minY + roundR32ToU32(rec.Max.y - rec.Min.y);
   u32 *row = (u32 *)imageBuffer->memory;
   for (u32 j = minY; j < maxY; j++) {
     for (u32 i = minX; i < maxX; i++) {
@@ -45,6 +47,16 @@ internal void RenderPlayer(GameOffscreenBuffer *imageBuffer, WorldPos playerPos,
   r32 y = playerPos.y + playerPos.y;
   rectangle2 player = {{x, y}, {x + width, y + height}};
   drawRectangle(imageBuffer, player, color);
+}
+
+internal void pushToEntities(EntityElement *array, Entity *entity) {}
+
+inline v2 worldPosToV2(WorldPos pos) {
+  return (v2){(r32)pos.x + pos.relX, (r32)pos.y + pos.relY};
+}
+
+internal v2 relativePosition(WorldPos pos1, WorldPos pos2) {
+  return worldPosToV2(pos1) - worldPosToV2(pos2);
 }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
@@ -80,6 +92,28 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     gameState->xOffset = 0;
     gameState->yOffset = 0;
     gameState->toneHz = 512;
+    gameState->entityCount = 0;
+    gameState->cameraPos = WorldPos{0, 0, 0, 0};
+
+    // add some big blocks as wall
+    for (i32 w = -10; w < 10; w++) {
+      Entity *wall = PushStruct(&gameMemory->worldArena, Entity);
+      wall->pos = WorldPos{w, w, 0, 0};
+      wall->type = EntityTypeWall;
+      gameState->entities[gameState->entityCount] = wall;
+      gameState->entityCount++;
+    }
+
+    Entity *hero = PushStruct(&gameMemory->worldArena, Entity);
+    hero->pos = WorldPos{10, 10, 0.34, 0.54};
+    hero->type = EntityTypePlayer;
+    gameState->player = hero;
+
+    gameState->entities[gameState->entityCount] = hero;
+    gameState->entityCount++;
+
+    Assert(gameState->entityCount < 1000);
+
     gameMemory->isInitialized = true;
   }
 
@@ -96,16 +130,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   r32 tileSizeMeter = 2.0f;
 
   r32 meterToPixel = 26;
-
-  EntityElement entities;
-
-  Entity *hero = PushStruct(&gameMemory->worldArena, Entity);
-  hero->pos = WorldPos{10, 10, 0.34, 0.54};
-  hero->type = EntityTypePlayer;
-  gameState->player = hero;
-
-  entities.entity = hero;
-  entities.next = NULL;
 
   u32 map[9][17] = {
       {1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -143,9 +167,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   r32 playerSpeed = 10.0f;
   nextPlayerPos = gameState->player->pos + (unit * playerSpeed);
 
-  i32 row = (i32)nextPlayerPos.y;
-  i32 col = (i32)nextPlayerPos.x;
-  bool32 isOccupied = map[row][col] != 0;
+  // i32 row = (i32)nextPlayerPos.y;
+  // i32 col = (i32)nextPlayerPos.x;
+  // bool32 isOccupied = map[row][col] != 0;
 
   // if (!isOccupied) {
   //   gameState->playerPos = nextPlayerPos;
@@ -185,20 +209,32 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   drawRectangle(imageBuffer, screenRect, 0xFFFFFF00);
 
   // draw tiles in pixel
-  i32 tileSizeInPixel = tileSizeMeter * meterToPixel;
+  rectangle2 tileRectangle =
+      (rectangle2){{0, 0}, {tileSizeMeter, tileSizeMeter}};
 
-  for (u32 y = 0; y < 9; y++) {
-    for (u32 x = 0; x < 17; x++) {
-      u32 *slot = PushStruct(&gameMemory->worldArena, u32);
-      *slot = x;
-      if (map[y][x] == 1) {
-        rectangle2 tile = {{(r32)x * tileSizeInPixel, (r32)y * tileSizeInPixel},
-                           {(r32)((x + 1) * tileSizeInPixel),
-                            (r32)((y + 1) * tileSizeInPixel)}};
-        drawRectangle(imageBuffer, tile + screenOffset, 0xFF00FFFF);
-      }
+  for (u32 entityIndex = 0; entityIndex < gameState->entityCount;
+       entityIndex++) {
+    Entity *entity = gameState->entities[entityIndex];
+    if (entity->type == EntityTypeWall) {
+      v2 relPos = relativePosition(entity->pos, gameState->cameraPos);
+      drawRectangle(imageBuffer, (tileRectangle + relPos) * meterToPixel,
+                    0xFF0000FF);
     }
   }
+
+  // for (u32 y = 0; y < 9; y++) {
+  //   for (u32 x = 0; x < 17; x++) {
+  //     u32 *slot = PushStruct(&gameMemory->worldArena, u32);
+  //     *slot = x;
+  //     if (map[y][x] == 1) {
+  //       rectangle2 tile = {{(r32)x * tileSizeInPixel, (r32)y *
+  //       tileSizeInPixel},
+  //                          {(r32)((x + 1) * tileSizeInPixel),
+  //                           (r32)((y + 1) * tileSizeInPixel)}};
+  //       drawRectangle(imageBuffer, tile + screenOffset, 0xFF00FFFF);
+  //     }
+  //   }
+  // }
 
   RenderPlayer(imageBuffer, gameState->player->pos,
                playerWidthMeter * meterToPixel,

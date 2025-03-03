@@ -190,16 +190,19 @@ typedef struct {
   EntityType type;
 } Entity;
 
-typedef struct EntityElement {
+struct EntityElement {
   Entity *entity;
-  struct EntityElement *next;
-} EntityElement;
+  EntityElement *next;
+};
 
 typedef struct {
   i32 xOffset;
   i32 yOffset;
   u32 toneHz;
   Entity *player;
+  Entity *entities[1000];
+  u32 entityCount;
+  WorldPos cameraPos;
 } GameState;
 
 typedef struct {
