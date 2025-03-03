@@ -196,16 +196,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     GameControllerInput *gameController = &input->Controller[GameControllerIdx];
     if (gameController->isConnected) {
       if (gameController->moveUp.EndedDown) {
-        unit = {0, 1};
+        unit = unit + v2{0, 1};
       }
       if (gameController->moveDown.EndedDown) {
-        unit = {0, -1};
+        unit = unit + v2{0, -1};
       }
       if (gameController->moveLeft.EndedDown) {
-        unit = {-1, 0};
+        unit = unit + v2{-1, 0};
       }
       if (gameController->moveRight.EndedDown) {
-        unit = {1, 0};
+        unit = unit + v2{1, 0};
       }
     }
   }
