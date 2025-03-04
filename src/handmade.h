@@ -188,6 +188,9 @@ typedef struct {
 typedef struct {
   WorldPos pos;
   EntityType type;
+  // will be array of rectangles.
+  rectangle2 size;
+  v2 velocity;
 } Entity;
 
 struct EntityElement {

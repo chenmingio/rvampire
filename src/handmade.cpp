@@ -105,6 +105,8 @@ internal v2 relativePosition(WorldPos pos1, WorldPos pos2) {
   return worldPosToV2(pos1) - worldPosToV2(pos2);
 }
 
+internal bool32 shouldCollide(Entity *a, Entity *b) { return true; }
+
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
   GameState *gameState = (GameState *)gameMemory->permanentStorage;
   Assert(sizeof(GameState) <= gameMemory->permanentStorageSize);
@@ -114,6 +116,20 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples) {
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   GameState *gameState = (GameState *)gameMemory->permanentStorage;
   Assert(sizeof(GameState) <= gameMemory->permanentStorageSize);
+
+  // in pixel
+  i32 screenWidth = 960;
+  i32 screenHeight = 540;
+  i32 leftOffsetX = 40;
+  i32 leftOffsetY = 40;
+  v2 screenOffset = V2i(leftOffsetX, leftOffsetY);
+
+  // in meter
+  r32 playerWidthMeter = 1.2;
+  r32 playerHeightMeter = 1.8;
+  r32 tileSizeMeter = 1.5f;
+
+  r32 meterToPixel = 26;
 
   // initialize game setting
   if (!gameMemory->isInitialized) {
@@ -142,17 +158,24 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     gameState->cameraPos = WorldPos{0, 0, 0, 0};
 
     // add some big blocks as wall
-    for (i32 w = -10; w < 10; w++) {
-      Entity *wall = PushStruct(&gameMemory->worldArena, Entity);
-      wall->pos = WorldPos{w, w, 0, 0};
-      wall->type = EntityTypeWall;
-      gameState->entities[gameState->entityCount] = wall;
-      gameState->entityCount++;
+    for (i32 x = -10; x < 10; x++) {
+      for (i32 y = -10; y < 10; y++) {
+        if (x == -8 || y == 8) {
+          Entity *wall = PushStruct(&gameMemory->worldArena, Entity);
+          wall->pos = WorldPos{x, y, 0, 0};
+          wall->type = EntityTypeWall;
+          wall->size = rectangle2{v2{-tileSizeMeter / 2, 0},
+                                  v2{tileSizeMeter / 2, tileSizeMeter}};
+          gameState->entities[gameState->entityCount] = wall;
+          gameState->entityCount++;
+        }
+      }
     }
 
     Entity *hero = PushStruct(&gameMemory->worldArena, Entity);
     hero->pos = WorldPos{0, 0, 0, 0};
     hero->type = EntityTypePlayer;
+    hero->velocity = v2{0, 0};
     gameState->player = hero;
 
     gameState->entities[gameState->entityCount] = hero;
@@ -162,20 +185,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 
     gameMemory->isInitialized = true;
   }
-
-  // in pixel
-  i32 screenWidth = 960;
-  i32 screenHeight = 540;
-  i32 leftOffsetX = 40;
-  i32 leftOffsetY = 40;
-  v2 screenOffset = V2i(leftOffsetX, leftOffsetY);
-
-  // in meter
-  r32 playerWidthMeter = 1.2;
-  r32 playerHeightMeter = 1.8;
-  r32 tileSizeMeter = 2.0f;
-
-  r32 meterToPixel = 26;
 
   u32 map[9][17] = {
       {1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -188,32 +197,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
       {1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
       {1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1},
   };
-
-  WorldPos nextPlayerPos;
-  v2 unit = {0, 0};
-
-  for (i32 GameControllerIdx = 0; GameControllerIdx < 4; GameControllerIdx++) {
-    GameControllerInput *gameController = &input->Controller[GameControllerIdx];
-    if (gameController->isConnected) {
-      if (gameController->moveUp.EndedDown) {
-        unit = unit + v2{0, 1};
-      }
-      if (gameController->moveDown.EndedDown) {
-        unit = unit + v2{0, -1};
-      }
-      if (gameController->moveLeft.EndedDown) {
-        unit = unit + v2{-1, 0};
-      }
-      if (gameController->moveRight.EndedDown) {
-        unit = unit + v2{1, 0};
-      }
-    }
-  }
-
-  r32 playerSpeed = 5.0f * timeSpan;
-  nextPlayerPos = gameState->player->pos + (unit * playerSpeed);
-  gameState->player->pos = nextPlayerPos;
-  gameState->cameraPos = nextPlayerPos;
 
   // i32 row = (i32)nextPlayerPos.y;
   // i32 col = (i32)nextPlayerPos.x;
@@ -258,6 +241,55 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
   for (u32 entityIndex = 0; entityIndex < gameState->entityCount;
        entityIndex++) {
     Entity *entity = gameState->entities[entityIndex];
+    if (entity->type == EntityTypePlayer) {
+      WorldPos nextPlayerPos;
+      // decelerate force relative to speed
+      v2 frictionDec = unitVector(gameState->player->velocity) * (-3);
+
+      v2 accUnit = v2{0, 0};
+      for (i32 GameControllerIdx = 0; GameControllerIdx < 4;
+           GameControllerIdx++) {
+        GameControllerInput *gameController =
+            &input->Controller[GameControllerIdx];
+        if (gameController->isConnected) {
+          if (gameController->moveUp.EndedDown) {
+            accUnit = v2{0, 1};
+          }
+          if (gameController->moveDown.EndedDown) {
+            accUnit = v2{0, -1};
+          }
+          if (gameController->moveLeft.EndedDown) {
+            accUnit = v2{-1, 0};
+          }
+          if (gameController->moveRight.EndedDown) {
+            accUnit = v2{1, 0};
+          }
+        }
+      }
+
+      v2 acc = 5.0f * accUnit;
+      v2 accFinal = acc + frictionDec;
+      v2 v2 = gameState->player->velocity + accFinal * timeSpan;
+      // if (scala(gameState->player->velocity) > 10) {
+      //   gameState->player->velocity =
+      //       unitVector(gameState->player->velocity) * 10;
+      // } else {
+      gameState->player->velocity = v2;
+      // }
+
+      nextPlayerPos = gameState->player->pos +
+                      0.5 * accFinal * square(timeSpan) +
+                      gameState->player->velocity * timeSpan;
+      for (u32 collideEntityIndex = 0; collideEntityIndex < entityIndex;
+           collideEntityIndex++) {
+        if ((entityIndex != collideEntityIndex) &&
+            shouldCollide(entity, gameState->entities[collideEntityIndex])) {
+          gameState->player->pos = nextPlayerPos;
+          gameState->cameraPos = nextPlayerPos;
+        }
+      }
+    }
+
     if (entity->type == EntityTypeWall) {
       v2 relPos = relativePosition(entity->pos, gameState->cameraPos);
       drawRectangle(imageBuffer, (tileRectangle + relPos) * meterToPixel, RED);

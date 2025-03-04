@@ -1,5 +1,6 @@
 #pragma once
 #include "handmade_platform.h"
+#include <math.h>
 
 // union v2 {
 //   struct {
@@ -39,4 +40,19 @@ inline rectangle2 operator-(rectangle2 a, v2 b) {
 
 inline rectangle2 operator*(rectangle2 a, r32 s) {
   return rectangle2{a.Min * s, a.Max * s};
+}
+
+inline r32 squareRoot(r32 x) { return sqrtf(x); }
+
+inline r32 square(r32 x) { return x * x; }
+
+inline r32 scala(v2 v) { return squareRoot(v.x * v.x + v.y * v.y); }
+
+inline v2 unitVector(v2 v) {
+  r32 scalar = scala(v);
+  if (scalar == 0) {
+    return v2{0, 0};
+  } else {
+    return v * (1 / scalar);
+  }
 }
