@@ -1,28 +1,9 @@
   {
     "configurations": [
       {
-        "name": "macos-clang-arm64",
-        "includePath": [
-          "${workspaceFolder}/**"
-        ],
-        "defines": [
-          "_DEBUG",
-          "UNICODE",
-          "_UNICODE",
-          "GRAPHICS_API_OPENGL_33",
-          "PLATFORM_DESKTOP"
-        ],
-        "cStandard": "${default}",
-        "cppStandard": "${default}",
-        "intelliSenseMode": "macos-clang-arm64",
-        "compilerPath": "/usr/bin/clang"
-      },
-      {
         "name": "Mac",
         "includePath": [
-          "${workspaceFolder}/build/external/raylib-master/src/**",
-          "${workspaceFolder}/include/**",
-          "${workspaceFolder}/src/**"
+          "${workspaceFolder}/**"
         ],
         "defines": [
           "_DEBUG",
@@ -36,15 +17,13 @@
         ],
         "compilerPath": "/usr/bin/clang",
         "cStandard": "c11",
-        "cppStandard": "c++14",
+        "cppStandard": "c++17",
         "intelliSenseMode": "clang-x64"
       },
       {
         "name": "Linux",
         "includePath": [
-          "${workspaceFolder}/build/external/raylib-master/src/**",
-          "${workspaceFolder}/include/**",
-          "${workspaceFolder}/src/**"
+          "${workspaceFolder}/**"
         ],
         "defines": [
           "_DEBUG",

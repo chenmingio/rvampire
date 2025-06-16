@@ -382,6 +382,7 @@ FodyWeavers.xsd
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+!.vscode/c_cpp_properties.json
 *.code-workspace
 
 # Local History for Visual Studio Code
@@ -401,13 +402,10 @@ raylib-master
 Makefile
 /*.sln
 
-compile_commands.json
-.vscode/settings.json
-.vscode/c_cpp_properties.json
-
 test.out
 .DS_Store
 resources/
 recording.vmi
 
 .DS_Store
+compile_commands.json

@@ -185,7 +185,7 @@ if (downloadRaylib) then
         vpaths 
         {
             ["Header Files/*"] = { "../include/**.h",  "../include/**.hpp", "../src/**.h", "../src/**.hpp"},
-            ["Source Files/*"] = {"../src/**.c", "src/**.cpp"},
+            ["Source Files/*"] = {"../src/**.c", "../src/**.cpp"},
             ["Widows Resoruce Files/*"] = {"../src/**.rc", "src/**.ico"},
         }
         
@@ -241,7 +241,7 @@ if (downloadRaylib) then
         files {"../src/handmade.cpp"}
         includedirs { "include" }
 
-        cppdialect "C++11"
+        cppdialect "C++17"
 
         filter "system:macosx"
             defines { "MYLIBRARY_EXPORTS" }  
